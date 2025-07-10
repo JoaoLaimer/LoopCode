@@ -8,11 +8,11 @@ const theme = createTheme({
       main: '#544AC4', // destaque 1
     },
     secondary: {
-      main: '#F06D6C', // layer 2
+      main: '#FFFFFF', // destaque 2
     },
     background: {
-      default: '#1B1C30', // layer 1
-      paper: '#26273B', // layer 2
+      default: '#101018', // layer 1
+      paper: '#101018', // layer 2
     },
   },
   typography: {

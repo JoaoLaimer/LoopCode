@@ -6,13 +6,7 @@ const label = { inputProps: { "aria-label": "Checkbox demo" } };
 export default function Home() {
   return (
     <div>
-      <Image src="/images/gato.jpg" alt="image" width={500} height={300} />
-      <div>
-        <Checkbox {...label} defaultChecked />
-        <Checkbox {...label} />
-        <Checkbox {...label} disabled />
-        <Checkbox {...label} disabled checked />
-      </div>
+      <h1>Home</h1>
     </div>
   );
 }
