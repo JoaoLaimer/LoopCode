@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Editor from "@monaco-editor/react";
+import Button from "@mui/material/Button";
+import SendIcon from "@mui/icons-material/Send";
 
 export default function ExercisePage({ params }) {
   const actualParams = React.use(params);
@@ -10,8 +12,8 @@ export default function ExercisePage({ params }) {
   const [nums, setNums] = useState("2, 7, 11, 15");
   const [target, setTarget] = useState("9");
   const [resultado, setResultado] = useState("");
+  const [selectedCase, setSelectedCase] = useState(0);
 
-  // Estado para o código no editor
   const [code, setCode] = useState(
     `class Solution(object):
     def twoSum(self, nums, target):
@@ -20,6 +22,13 @@ export default function ExercisePage({ params }) {
         # type: List[int]
         pass`
   );
+
+  const testCases = [
+    { nums: "2, 7, 11, 15", target: "9" },
+    { nums: "3, 2, 4", target: "6" },
+    { nums: "1, 5, 3", target: "6" },
+    { nums: "0, 4, 3, 0", target: "0" },
+  ];
 
   const handleRun = () => {
     const numArray = nums.split(",").map((n) => parseInt(n.trim()));
@@ -38,10 +47,21 @@ export default function ExercisePage({ params }) {
     setResultado("Sem solução");
   };
 
+  const handleTestCaseSelect = (index) => {
+    const testCase = testCases[index];
+    setSelectedCase(index);
+    setNums(testCase.nums);
+    setTarget(testCase.target);
+    setResultado("");
+  };
+
+  // Vai pra dentro 1B1C30
+  // Vai pra fora 26273B
+
   return (
-    <main className="flex max-h-screen bg-[#0f172a] text-white p-8 gap-8">
+    <main className="flex h-[calc(100vh-64px)] w-full overflow-hidden bg-[#26273B] text-white p-8 gap-8">
       {/* Sidebar */}
-      <section className="w-1/3 bg-[#1e293b] p-6 rounded-lg">
+      <section className="w-1/3 h-full bg-[#1B1C30] p-6 rounded-lg overflow-auto">
         <h1 className="text-2xl font-bold mb-2">Exercício: {id}</h1>
         <p className="text-sm text-gray-300 mb-2">
           Dificuldade: Fácil — Linguagem: Python
@@ -69,7 +89,7 @@ export default function ExercisePage({ params }) {
         </p>
 
         <h2 className="text-lg font-semibold mb-2">Exemplos</h2>
-        <pre className="bg-[#0f172a] p-3 rounded text-sm">
+        <pre className="bg-[#212237] p-3 rounded text-sm">
           {`Input: nums = [2,7,11,15], target = 9
 Output: [0,1]
 
@@ -78,18 +98,19 @@ Output: [1,2]`}
         </pre>
       </section>
 
-      {/* Área de código */}
-      <section className="flex-1 flex flex-col gap-4">
-        <div className="bg-[#1e293b] p-4 rounded-lg h-full flex flex-col">
+      {/* Code & Output Area */}
+      <section className="flex-1 flex flex-col gap-4 h-full overflow-hidden">
+        {/* Editor */}
+        <div className="bg-[#1B1C30] p-4 rounded-lg flex-1 flex flex-col overflow-hidden">
           <h2 className="text-lg font-bold mb-2">Code</h2>
           <Editor
-            height="300px"
+            height="100%"
             language="python"
             value={code}
-            onChange={(value) => setCode(value)}
+            onChange={(value) => setCode(value || "")}
             theme="vs-dark"
             options={{
-              fontSize: 14,
+              fontSize: 16,
               minimap: { enabled: false },
               wordWrap: "on",
               automaticLayout: true,
@@ -97,10 +118,25 @@ Output: [1,2]`}
           />
         </div>
 
-        {/* Resultados */}
-        <div className="bg-[#1e293b] p-4 rounded-lg mt-auto">
+        {/* Results / Inputs */}
+        <div className="bg-[#1B1C30] p-4 rounded-lg">
+          {/* Test case buttons */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            {testCases.map((test, index) => (
+              <Button
+                key={index}
+                variant={selectedCase === index ? "contained" : "outlined"}
+                onClick={() => handleTestCaseSelect(index)}
+                className="text-sm"
+              >
+                Caso {index + 1}
+              </Button>
+            ))}
+          </div>
+
+          {/* Inputs */}
           <div className="mb-4">
-            <label className="block text-sm mb-1">nums =</label>
+            <label className="block text-sm mb-1">nums</label>
             <input
               type="text"
               value={nums}
@@ -110,7 +146,7 @@ Output: [1,2]`}
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm mb-1">target =</label>
+            <label className="block text-sm mb-1">target</label>
             <input
               type="text"
               value={target}
@@ -119,13 +155,15 @@ Output: [1,2]`}
             />
           </div>
 
-          <button
+          <Button
             onClick={handleRun}
-            className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+            variant="contained"
+            endIcon={<SendIcon />}
           >
             Executar
-          </button>
+          </Button>
 
+          {/* Output */}
           <div className="mt-4">
             <label className="block text-sm mb-1">Output:</label>
             <pre className="bg-[#0f172a] p-2 rounded">{resultado}</pre>
