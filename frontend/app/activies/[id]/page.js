@@ -55,11 +55,8 @@ export default function ExercisePage({ params }) {
     setResultado("");
   };
 
-  // Vai pra dentro 1B1C30
-  // Vai pra fora 26273B
-
   return (
-    <main className="flex h-[calc(100vh-64px)] w-full overflow-hidden bg-[#26273B] text-white p-8 gap-8">
+    <main className="flex h-[calc(100vh-64px)] w-full overflow-hidden text-white p-8 gap-8">
       {/* Sidebar */}
       <section className="w-1/3 h-full bg-[#1B1C30] p-6 rounded-lg overflow-auto">
         <h1 className="text-2xl font-bold mb-2">Exercício: {id}</h1>
