@@ -35,12 +35,8 @@ public class AuthService {
 
     @Transactional
     public AuthResponseDto register(RegisterRequestDto requestDto) {
-        if (userRepository.existsByUsername(requestDto.username())) {
-            throw new UserAlreadyExistsException("Username already exists.");
-        }
-        if (userRepository.existsByEmail(requestDto.email())) { // Corrigido para existsByEmail
-            throw new UserAlreadyExistsException("Email already exists.");
-        }
+        if (userRepository.existsByUsername(requestDto.username())|| (userRepository.existsByEmail(requestDto.email())))
+            throw new UserAlreadyExistsException("Username or email already exists.");
 
         User newUser = new User();
         newUser.setUsername(requestDto.username());
@@ -50,14 +46,8 @@ public class AuthService {
         newUser.setDaily_streak(0);
 
         userRepository.save(newUser);
-        // tem que meter uma exceção aqui spa
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                newUser.getUsername(),
-                null,
-                newUser.getAuthorities());
 
-        String jwtToken = jwtService.generateToken(authentication);
-        return new AuthResponseDto(jwtToken, newUser.getUsername(), newUser.getRole(), "Registration successful!");
+        return new AuthResponseDto(null ,newUser.getUsername(), newUser.getRole(), "Registration successful!");
     }
 
     public AuthResponseDto login(LoginRequestDto requestDto) {
