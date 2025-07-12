@@ -3,7 +3,6 @@ package com.loopcode.loopcode.controller;
 import com.loopcode.loopcode.dtos.AuthResponseDto;
 import com.loopcode.loopcode.dtos.LoginRequestDto;
 import com.loopcode.loopcode.dtos.RegisterRequestDto;
-import com.loopcode.loopcode.exceptions.UserAlreadyExistsException;
 import com.loopcode.loopcode.service.AuthService;
 
 import jakarta.validation.Valid;
@@ -14,6 +13,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,24 +27,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDto> register(@RequestBody @Valid RegisterRequestDto requestDto) {
-        try {
-            AuthResponseDto response = authService.register(requestDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (UserAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new AuthResponseDto(null, null, null, e.getMessage()));
-        }
+    @ResponseStatus(HttpStatus.CREATED)
+    public void register(@Valid @RequestBody RegisterRequestDto requestDto) {
+        authService.register(requestDto);
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDto> login(@RequestBody @Valid LoginRequestDto requestDto) {
-        try {
-            AuthResponseDto response = authService.login(requestDto);
-            return ResponseEntity.ok(response);
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new AuthResponseDto(null, null, null, e.getMessage()));
-        }
+        AuthResponseDto response = authService.login(requestDto);
+        return ResponseEntity.ok(response);
     }
 }

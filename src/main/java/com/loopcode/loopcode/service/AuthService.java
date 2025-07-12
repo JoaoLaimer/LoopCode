@@ -10,7 +10,6 @@ import com.loopcode.loopcode.security.Role;
 import com.loopcode.loopcode.security.JwtService;
 
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,7 +33,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponseDto register(RegisterRequestDto requestDto) {
+    public void register(RegisterRequestDto requestDto) {
         if (userRepository.existsByUsername(requestDto.username())|| (userRepository.existsByEmail(requestDto.email())))
             throw new UserAlreadyExistsException("Username or email already exists.");
 
@@ -47,24 +46,18 @@ public class AuthService {
 
         userRepository.save(newUser);
 
-        return new AuthResponseDto(null ,newUser.getUsername(), newUser.getRole(), "Registration successful!");
     }
 
+    @Transactional(readOnly = true)
     public AuthResponseDto login(LoginRequestDto requestDto) {
-        User foundUser = userRepository.findByEmail(requestDto.email())
-                .orElseThrow(() -> new BadCredentialsException("Email ou senha inválidos."));
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        foundUser.getUsername(),
+                        requestDto.email(),
                         requestDto.password()));
 
         String jwtToken = jwtService.generateToken(authentication);
 
-        return new AuthResponseDto(
-                jwtToken,
-                foundUser.getUsername(),
-                foundUser.getRole(),
-                "Login successful!");
+        return new AuthResponseDto(jwtToken);
     }
 }
