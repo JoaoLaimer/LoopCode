@@ -1,22 +1,25 @@
 // lib/theme.js
-import { createTheme } from '@mui/material/styles';
+import { createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: "dark",
     primary: {
-      main: '#673AB7', // destaque 1
+      main: "#673AB7", // destaque 1
     },
     secondary: {
-      main: '#673AB7', // destaque 2
+      main: "#673AB7", // destaque 2
     },
     background: {
-      default: '#121212', // layer 1
-      paper: '#161616', // layer 2
+      default: "#121212", // layer 1
+      paper: "#161616", // layer 2
+    },
+    card: {
+      primary: "#1B1C30",
     },
   },
   typography: {
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: "Inter, sans-serif",
   },
 });
 

@@ -2,8 +2,16 @@
 
 import React, { useState } from "react";
 import Editor from "@monaco-editor/react";
-import Button from "@mui/material/Button";
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  Chip,
+  useTheme,
+} from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import CodeIcon from "@mui/icons-material/Code";
 
 export default function ExercisePage({ params }) {
   const actualParams = React.use(params);
@@ -56,24 +64,43 @@ export default function ExercisePage({ params }) {
   };
 
   return (
-    <main className="flex h-[calc(100vh-64px)] w-full overflow-hidden text-white p-8 gap-8">
+    <Box
+      sx={{
+        display: "flex",
+        height: "calc(100vh - 64px)",
+        width: "100%",
+        overflow: "hidden",
+        color: "white",
+        gap: 4,
+        p: 4,
+        bgcolor: "background.default",
+      }}
+    >
       {/* Sidebar */}
-      <section className="w-1/3 h-full bg-[#1B1C30] p-6 rounded-lg overflow-auto">
-        <h1 className="text-2xl font-bold mb-2">Exercício: {id}</h1>
-        <p className="text-sm text-gray-300 mb-2">
+      <Box
+        sx={{
+          width: "33%",
+          height: "100%",
+          bgcolor: "card.primary",
+          p: 3,
+          borderRadius: 2,
+          overflow: "auto",
+        }}
+      >
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          Exercício: {id}
+        </Typography>
+
+        <Typography variant="body2" color="gray" gutterBottom>
           Dificuldade: Fácil — Linguagem: Python
-        </p>
+        </Typography>
 
-        <div className="flex gap-2 mb-4">
-          <span className="bg-blue-700 px-3 py-1 rounded-full text-sm">
-            Fácil
-          </span>
-          <span className="bg-purple-700 px-3 py-1 rounded-full text-sm">
-            Python
-          </span>
-        </div>
+        <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
+          <Chip label="Fácil" sx={{ bgcolor: "#3B82F6", color: "white" }} />
+          <Chip label="Python" sx={{ bgcolor: "#8B5CF6", color: "white" }} />
+        </Box>
 
-        <p className="text-sm mb-4">
+        <Typography variant="body2" paragraph>
           Given an array of integers nums and an integer target, return indices
           of the two numbers such that they add up to target.
           <br />
@@ -83,23 +110,50 @@ export default function ExercisePage({ params }) {
           <br />
           <br />
           You can return the answer in any order.
-        </p>
+        </Typography>
 
-        <h2 className="text-lg font-semibold mb-2">Exemplos</h2>
-        <pre className="bg-[#212237] p-3 rounded text-sm">
+        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+          Exemplos
+        </Typography>
+
+        <Box
+          component="pre"
+          sx={{
+            bgcolor: "#212237",
+            p: 2,
+            borderRadius: 1,
+            fontSize: "0.875rem",
+            whiteSpace: "pre-wrap",
+          }}
+        >
           {`Input: nums = [2,7,11,15], target = 9
 Output: [0,1]
 
 Input: nums = [3,2,4], target = 6
 Output: [1,2]`}
-        </pre>
-      </section>
+        </Box>
+      </Box>
 
       {/* Code & Output Area */}
-      <section className="flex-1 flex flex-col gap-4 h-full overflow-hidden">
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
         {/* Editor */}
-        <div className="bg-[#1B1C30] p-4 rounded-lg flex-1 flex flex-col overflow-hidden">
-          <h2 className="text-lg font-bold mb-2">Code</h2>
+        <Box
+          sx={{
+            bgcolor: "card.primary",
+            p: 2,
+            borderRadius: 2,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+            <CodeIcon />
+            <Typography variant="h6" fontWeight="bold">
+              Code
+            </Typography>
+          </Box>
           <Editor
             height="100%"
             language="python"
@@ -113,60 +167,95 @@ Output: [1,2]`}
               automaticLayout: true,
             }}
           />
-        </div>
+        </Box>
 
         {/* Results / Inputs */}
-        <div className="bg-[#1B1C30] p-4 rounded-lg">
-          {/* Test case buttons */}
-          <div className="mb-4 flex flex-wrap gap-2">
-            {testCases.map((test, index) => (
-              <Button
-                key={index}
-                variant={selectedCase === index ? "contained" : "outlined"}
-                onClick={() => handleTestCaseSelect(index)}
-                className="text-sm"
-              >
-                Caso {index + 1}
-              </Button>
-            ))}
-          </div>
-
-          {/* Inputs */}
-          <div className="mb-4">
-            <label className="block text-sm mb-1">nums</label>
-            <input
-              type="text"
-              value={nums}
-              onChange={(e) => setNums(e.target.value)}
-              className="w-full bg-[#0f172a] p-2 rounded text-white border border-gray-600"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm mb-1">target</label>
-            <input
-              type="text"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              className="w-full bg-[#0f172a] p-2 rounded text-white border border-gray-600"
-            />
-          </div>
-
-          <Button
-            onClick={handleRun}
-            variant="contained"
-            endIcon={<SendIcon />}
+        <Box sx={{ bgcolor: "card.primary", p: 2, borderRadius: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 2,
+              mb: 3,
+            }}
           >
-            Executar
-          </Button>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              {testCases.map((test, index) => (
+                <Button
+                  key={index}
+                  size="small"
+                  variant={selectedCase === index ? "contained" : "outlined"}
+                  onClick={() => handleTestCaseSelect(index)}
+                >
+                  Caso {index + 1}
+                </Button>
+              ))}
+            </Box>
+            <Button
+              onClick={handleRun}
+              variant="contained"
+              endIcon={<SendIcon />}
+            >
+              Executar
+            </Button>
+          </Box>
 
-          {/* Output */}
-          <div className="mt-4">
-            <label className="block text-sm mb-1">Output:</label>
-            <pre className="bg-[#0f172a] p-2 rounded">{resultado}</pre>
-          </div>
-        </div>
-      </section>
-    </main>
+          <TextField
+            label="nums"
+            fullWidth
+            value={nums}
+            onChange={(e) => setNums(e.target.value)}
+            variant="outlined"
+            size="small"
+            sx={{
+              mb: 2,
+              input: { color: "white" },
+              "& label": { color: "gray" },
+              "& .MuiOutlinedInput-root": {
+                bgcolor: "#0f172a",
+                borderRadius: 1,
+              },
+            }}
+          />
+
+          <TextField
+            label="target"
+            fullWidth
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            variant="outlined"
+            size="small"
+            sx={{
+              mb: 3,
+              input: { color: "white" },
+              "& label": { color: "gray" },
+              "& .MuiOutlinedInput-root": {
+                bgcolor: "#0f172a",
+                borderRadius: 1,
+              },
+            }}
+          />
+
+          <Box>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Output:
+            </Typography>
+            <Box
+              component="pre"
+              sx={{
+                bgcolor: "#0f172a",
+                p: 2,
+                borderRadius: 1,
+                color: "white",
+              }}
+            >
+              {resultado}
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   );
 }
