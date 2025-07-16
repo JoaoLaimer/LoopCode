@@ -90,8 +90,8 @@ export default function PerfilUsuario({ params }) {
 
                 <Box className="w-full grid grid-cols-2 gap-10">
                     {/* Exercícios */}
-                    <Box className="border-1 border-neutral-700 p-5">
-                        <Typography variant="h6" className="pb-2">
+                    <Box className="p-5 " sx={{bgcolor: "card.primary", borderRadius: 2,}}>
+                        <Typography variant="h5" className="pb-2">
                             Exercícios
                         </Typography>
                         <Box className="rounded-2xl">
@@ -106,8 +106,8 @@ export default function PerfilUsuario({ params }) {
                     </Box>
 
                     {/* Listas */}
-                    <Box  className="border-1 border-neutral-700 p-5">
-                        <Typography variant="h6" className="pb-2 text-white">
+                    <Box  className="p-5" sx={{bgcolor: "card.primary", borderRadius: 2,}}>
+                        <Typography variant="h5" className="pb-2 text-white">
                             Listas
                         </Typography>
                         <Box className="rounded-2xl">
