@@ -6,6 +6,7 @@ const theme = createTheme({
     mode: "dark",
     primary: {
       main: "#673AB7", // destaque 1
+      contrast: "#1f081eff", // contraste main
     },
     secondary: {
       main: "#673AB7", // destaque 2
@@ -16,6 +17,7 @@ const theme = createTheme({
     },
     card: {
       primary: "#1B1C30",
+      secondary: "#303042ff", // divider
     },
   },
   typography: {
