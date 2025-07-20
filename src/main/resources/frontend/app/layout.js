@@ -3,6 +3,7 @@ import "./globals.css";
 import MuiThemeProvider from './theme-provider';
 import NavWrapper from '../components/NavWrapper';
 import { Container } from '@mui/material';
+import AuthGuard from './auth-guard';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -11,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Loop Code",
+  title: "LoopCode",
 };
 
 export default function RootLayout({ children }) {
@@ -21,7 +22,9 @@ export default function RootLayout({ children }) {
         <MuiThemeProvider>
           <NavWrapper />
           <Container maxWidth="xl">
-            {children}
+            <AuthGuard>
+              {children}
+            </AuthGuard> 
           </Container>
         </MuiThemeProvider>
       </body>

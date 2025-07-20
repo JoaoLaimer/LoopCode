@@ -32,15 +32,28 @@ export default function RegisterPage() {
   const handleMouseDownPassword = (event) => event.preventDefault();
   const handleMouseUpPassword = (event) => event.preventDefault();
 
-  const handleRegistro = (e) => {
+  const handleRegistro = async (e) => {
     e.preventDefault();
 
-    const senhasIguais = senha === confirmarSenha;
-    setErroSenha(!senhasIguais);
+    if (senha !== confirmarSenha) {
+      setErroSenha(true);
+      return;
+    }
 
-    if (senhasIguais) {
-      console.log(`Registrado: ${email}, Nome: ${name}, Senha: ${senha}`);
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const response = await fetch(`${baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: name, email: email, password: senha, role: 'USER' }),
+      });
+
+      if (!response.ok) throw new Error('Erro ao registrar');
+      
+      alert('Registrado com sucesso!');
       window.location.href = '/login';
+    } catch (err) {
+      alert(err.message);
     }
   };
 

@@ -21,10 +21,25 @@ export default function LoginPage() {
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    document.cookie = "isLoggedIn=true; path=/; max-age=3600";
-    window.location.href = '/';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const response = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: senha }),
+      });
+
+      if (!response.ok) throw new Error('Credenciais inválidas');
+      
+      const data = await response.json();
+
+      localStorage.setItem('token', data.token); // salva token
+      window.location.href = '/'; // redireciona
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const registrar = () => {
