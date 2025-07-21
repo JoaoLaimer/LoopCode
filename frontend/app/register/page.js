@@ -19,8 +19,10 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -85,14 +87,14 @@ export default function RegisterPage() {
       // Redirect to home page
       const data = await loginResponse.json();
       localStorage.setItem('token', data.token);
-      window.location.href = '/';
+      router.push('/');
     } catch (err) {
       console.error('Erro ao registrar ou fazer login:', err);
     }
   };
 
   const login = () => {
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   return (

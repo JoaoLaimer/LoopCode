@@ -88,14 +88,16 @@ export default function Nav() {
   );
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1 }} className="nav-container pb-10">
       <AppBar
-        position="static"
+        position="fixed"
         elevation={0}
         sx={{
-          backgroundColor: 'transparent',
+          backgroundColor: 'background.main',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-          backdropFilter: 'blur(4px)', // opcional
+          backdropFilter: 'blur(4px)', 
+          zIndex: (theme) => theme.zIndex.drawer + 1, 
+          padding: '0 16px', 
         }}
       >
 

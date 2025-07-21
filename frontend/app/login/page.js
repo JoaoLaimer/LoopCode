@@ -18,8 +18,10 @@ import { useState } from 'react';
 import Image from "next/image";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -50,14 +52,14 @@ export default function LoginPage() {
       const data = await response.json();
 
       localStorage.setItem('token', data.token); // salva token
-      window.location.href = '/'; // redireciona
+      router.push('/'); // redireciona
     } catch (err) {
       console.log(err.message);
     }
   };
 
   const registrar = () => {
-    window.location.href = '/register';
+    router.push('/register');
   };
 
   const handleMouseDownPassword = (event) => event.preventDefault();
