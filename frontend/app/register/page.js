@@ -10,7 +10,10 @@ import {
   FormControl,
   FormHelperText,
   Link,
-  TextField
+  TextField,
+  Snackbar,
+  Alert,
+  Typography
 } from '@mui/material';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -18,6 +21,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 export default function RegisterPage() {
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -25,6 +29,7 @@ export default function RegisterPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [erroSenha, setErroSenha] = useState(false);
+  const [erroSenhaText, setErroSenhaText] = useState('As senhas não coincidem.');
 
   const handleClickShowPassword = () => setMostrarSenha((show) => !show);
   const handleClickShowConfirmar = () => setMostrarConfirmar((show) => !show);
@@ -32,28 +37,57 @@ export default function RegisterPage() {
   const handleMouseDownPassword = (event) => event.preventDefault();
   const handleMouseUpPassword = (event) => event.preventDefault();
 
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setOpen(false);
+  };
+
   const handleRegistro = async (e) => {
     e.preventDefault();
 
     if (senha !== confirmarSenha) {
+      setErroSenhaText('As senhas não coincidem.');
       setErroSenha(true);
       return;
     }
-
+    if (senha.length < 8) {
+      setErroSenhaText('A senha deve ter pelo menos 8 caracteres.');
+      setErroSenha(true);
+      return;
+    }
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
-      const response = await fetch(`${baseUrl}/auth/register`, {
+      // Register user
+      const registerResponse = await fetch(`${baseUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: name, email: email, password: senha, role: 'USER' }),
       });
 
-      if (!response.ok) throw new Error('Erro ao registrar');
+      if (!registerResponse.ok) {
+        setOpen(true);
+        return;
+      }
       
-      alert('Registrado com sucesso!');
-      window.location.href = '/login';
+      // Login user
+      const loginResponse = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: senha }),
+      });
+
+      if (!loginResponse.ok) {
+        setOpen(true);
+      }
+
+      // Redirect to home page
+      const data = await loginResponse.json();
+      localStorage.setItem('token', data.token);
+      window.location.href = '/';
     } catch (err) {
-      alert(err.message);
+      console.error('Erro ao registrar ou fazer login:', err);
     }
   };
 
@@ -63,6 +97,17 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
+      <Snackbar open={open} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} autoHideDuration={6000} onClose={handleClose}>
+      <Alert
+        severity="error"
+        onClose={handleClose}
+        variant="filled"
+        sx={{ width: '100%' }}
+      >
+        Ocorreu um erro ao registrar. Tente novamente.
+      </Alert>
+    </Snackbar>
+
       <div className="w-full max-w-md p-3 relative min-h-[450px]">
         <div className="absolute inset-0">
           <CardContent>
@@ -145,7 +190,7 @@ export default function RegisterPage() {
                   }
                 />
                 {erroSenha && (
-                  <FormHelperText>As senhas não coincidem.</FormHelperText>
+                  <FormHelperText>{erroSenhaText}</FormHelperText>
                 )}
               </FormControl>
 
@@ -153,14 +198,17 @@ export default function RegisterPage() {
                 Registrar
               </Button>
 
-              <Link
-                color="inherit"
-                underline="none"
-                onClick={login}
-                style={{ cursor: 'pointer', textAlign: 'center' }}
-              >
-                Já tem uma conta? Faça login
-              </Link>
+                <Typography variant="body2" color="textSecondary" align="center" style={{ marginTop: '16px' }}>
+                  Já tem uma conta? <Link
+                    color="secondary"
+                    underline="none"
+                    onClick={login}
+                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                  >
+                    Faça login
+                  </Link>
+                </Typography>
+
             </form>
           </CardContent>
         </div>

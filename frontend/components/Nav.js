@@ -16,6 +16,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -57,6 +58,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 export default function Nav() {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const isMenuOpen = Boolean(anchorEl);
+  const router = useRouter();
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -65,6 +67,11 @@ export default function Nav() {
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    router.replace('/login');
+  }
 
   const menuId = 'account-menu';
   const renderMenu = (
@@ -76,7 +83,7 @@ export default function Nav() {
       onClose={handleMenuClose}
     >
       <MenuItem onClick={handleMenuClose}>Meu Perfil</MenuItem>
-      <MenuItem onClick={handleMenuClose}>Sair</MenuItem>
+      <MenuItem onClick={handleLogout}>Sair</MenuItem>
     </Menu>
   );
 

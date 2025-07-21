@@ -9,7 +9,10 @@ import {
   Link,
   OutlinedInput,
   InputLabel,
-  FormControl
+  FormControl,
+  Typography,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { useState } from 'react';
 import Image from "next/image";
@@ -20,6 +23,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setOpen(false);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -31,15 +42,17 @@ export default function LoginPage() {
         body: JSON.stringify({ email: email, password: senha }),
       });
 
-      if (!response.ok) throw new Error('Credenciais inválidas');
+      if (!response.ok) {
+        setOpen(true);
+        return;
+      }
       
       const data = await response.json();
 
-      alert('Login realizado com sucesso!');
       localStorage.setItem('token', data.token); // salva token
       window.location.href = '/'; // redireciona
     } catch (err) {
-      alert(err.message);
+      console.log(err.message);
     }
   };
 
@@ -52,6 +65,17 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <Snackbar open={open} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} autoHideDuration={6000} onClose={handleClose}>
+            <Alert
+              severity="error"
+              onClose={handleClose}
+              variant="filled"
+              sx={{ width: '100%' }}
+            >
+              Credenciais inválidas. Por favor, tente novamente.
+            </Alert>
+          </Snackbar>
+
       <div className="w-full max-w-md p-3 relative min-h-[300px]">
         <div className="absolute inset-0">
           <CardContent>
@@ -96,14 +120,16 @@ export default function LoginPage() {
                 Entrar
               </Button>
 
-              <Link
-                color="inherit"
-                underline="none"
-                onClick={registrar}
-                style={{ cursor: 'pointer', textAlign: 'center' }}
-              >
-                Não tem uma conta? Registre-se
-              </Link>
+                  <Typography variant="body2" color="textSecondary" align="center" style={{ marginTop: '16px' }}>
+                  Não tem uma conta? <Link
+                    color="secondary"
+                    underline="none"
+                    onClick={registrar}
+                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                  >
+                    Registre-se
+                  </Link>
+                </Typography>
 
             </form>
           </CardContent>
