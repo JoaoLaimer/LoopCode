@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
 import {
   Box,
@@ -22,45 +22,45 @@ export default function ExercisePage({ params }) {
   const [resultado, setResultado] = useState("");
   const [selectedCase, setSelectedCase] = useState(0);
 
-  const [code, setCode] = useState(
-    `class Solution(object):
-    def twoSum(self, nums, target):
-        # type nums: List[int]
-        # type target: int
-        # type: List[int]
-        pass`
-  );
+  const getExercise = async (id) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const response = await fetch(`${baseUrl}/exercises/${id}`, {
+        method: "GET",
+      });
+      if (!response.ok) throw new Error("Erro ao buscar exercício");
+      return response.json();
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
+  const [exercise, setExercise] = useState(null);
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await getExercise(id);
+      if (data) {
+        setExercise(data);
+      } else {
+        setExercise(null);
+      }
+    };
+    fetchData();
+  }, [id]);
+
+  const [code, setCode] = useState(`No data to display yet.`);
 
   const testCases = [
-    { nums: "2, 7, 11, 15", target: "9" },
-    { nums: "3, 2, 4", target: "6" },
-    { nums: "1, 5, 3", target: "6" },
-    { nums: "0, 4, 3, 0", target: "0" },
+    // Example test cases
   ];
 
   const handleRun = () => {
-    const numArray = nums.split(",").map((n) => parseInt(n.trim()));
-    const t = parseInt(target);
-
-    const indices = new Map();
-    for (let i = 0; i < numArray.length; i++) {
-      const complement = t - numArray[i];
-      if (indices.has(complement)) {
-        setResultado(`[${indices.get(complement)}, ${i}]`);
-        return;
-      }
-      indices.set(numArray[i], i);
-    }
-
-    setResultado("Sem solução");
+    // Implement the logic to run the code
   };
 
   const handleTestCaseSelect = (index) => {
-    const testCase = testCases[index];
-    setSelectedCase(index);
-    setNums(testCase.nums);
-    setTarget(testCase.target);
-    setResultado("");
+    // Set the selected test case
   };
 
   return (
@@ -88,28 +88,27 @@ export default function ExercisePage({ params }) {
         }}
       >
         <Typography variant="h5" fontWeight="bold" gutterBottom>
-          Exercício: {id}
+          Exercício: {exercise ? exercise.title : "Carregando..."}
         </Typography>
 
         <Typography variant="body2" color="gray" gutterBottom>
-          Dificuldade: Fácil — Linguagem: Python
+          Dificuldade: {exercise ? exercise.difficulty : "Carregando..."} —
+          Linguagem: {exercise ? exercise.language.name : "Carregando..."}
         </Typography>
 
         <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
-          <Chip label="Fácil" sx={{ bgcolor: "#3B82F6", color: "white" }} />
-          <Chip label="Python" sx={{ bgcolor: "#8B5CF6", color: "white" }} />
+          <Chip
+            label={exercise ? exercise.difficulty : "Carregando..."}
+            sx={{ bgcolor: "#3B82F6", color: "white" }}
+          />
+          <Chip
+            label={exercise ? exercise.language.name : "Carregando..."}
+            sx={{ bgcolor: "#8B5CF6", color: "white" }}
+          />
         </Box>
 
         <Typography variant="body2" paragraph>
-          Given an array of integers nums and an integer target, return indices
-          of the two numbers such that they add up to target.
-          <br />
-          <br />
-          You may assume that each input would have exactly one solution, and
-          you may not use the same element twice.
-          <br />
-          <br />
-          You can return the answer in any order.
+          {exercise ? exercise.description : "Carregando descrição..."}
         </Typography>
 
         <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -126,11 +125,7 @@ export default function ExercisePage({ params }) {
             whiteSpace: "pre-wrap",
           }}
         >
-          {`Input: nums = [2,7,11,15], target = 9
-Output: [0,1]
-
-Input: nums = [3,2,4], target = 6
-Output: [1,2]`}
+          {`Exemplos de Entrada e Saída:`}
         </Box>
       </Box>
 
