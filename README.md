@@ -13,5 +13,3 @@ http://localhost:8080/swagger-ui/index.html
 npm install
 ### Rodar:
 npm run dev
-### Caminho:
-cd src/main/resources/frontend
