@@ -137,9 +137,13 @@ public class ExerciseService {
         
         String apiLanguageIdentifier = exercise.getProgrammingLanguage().getApiIdentifier();
 
+
+        String fullCode = exercise.getMainCode();
+        fullCode = fullCode.replace("{user_code}",solveDto.code());
+
         for (TestCase testCase : exercise.getTestCode()){
             ExecutionResultDto result = codeExecutionService.execute(
-                solveDto.code(),
+                fullCode,
                 testCase.getInput(),
                 apiLanguageIdentifier
             );

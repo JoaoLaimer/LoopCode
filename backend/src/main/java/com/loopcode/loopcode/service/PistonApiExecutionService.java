@@ -1,6 +1,8 @@
 package com.loopcode.loopcode.service;
 
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.context.annotation.Profile;
@@ -36,10 +38,17 @@ public class PistonApiExecutionService implements CodeExecutionService{
         String version = runtimesService.getVersionForLanguage(languageIdentifier).orElse("*");
 
         PistonFile file = new PistonFile("main." + languageIdentifier, code);
-        PistonExecuteRequest requestPayload = new PistonExecuteRequest(languageIdentifier, version, List.of(file), input);
+
+        List<String> args = new ArrayList<>();
+        if (input != null && !input.trim().isEmpty()){
+            args = Arrays.asList(input.trim().split("[\\s,]+"));
+        }
+        PistonExecuteRequest requestPayload = new PistonExecuteRequest(languageIdentifier, version, List.of(file), args);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+
+        System.out.println(requestPayload);
 
         HttpEntity<PistonExecuteRequest> httpEntity = new HttpEntity<>(requestPayload, headers);
 

@@ -6,5 +6,5 @@ public record PistonExecuteRequest(
     String language,
     String version,
     List<PistonFile> files,
-    String stdin
+    List<String> args
 ) {}
