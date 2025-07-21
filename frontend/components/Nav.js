@@ -101,19 +101,21 @@ export default function Nav() {
 
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           {/* LOGO à esquerda */}
-          
+
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
             <Link href="/" passHref>
-                        <Image
-              src="/images/logo.png"
-              alt="Logo LoopCode"
-              width={50}
-              height={50}
-              priority
-            />
+              <Image
+                src="/images/logo.png"
+                alt="image"
+                width={0}
+                height={0}
+                sizes="100vw"
+                style={{ width: '50px', height: 'auto' }}
+                priority
+              />
             </Link>
           </Box>
-          
+
 
           {/* Pesquisa centralizada */}
           <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
@@ -140,8 +142,8 @@ export default function Nav() {
               color="inherit"
             >
               <Avatar sx={{ width: 35, height: 35, bgcolor: 'primary.main' }}>
-                        <Typography variant="subtitle1" color="white">U</Typography>
-                    </Avatar>
+                <Typography variant="subtitle1" color="white">U</Typography>
+              </Avatar>
             </IconButton>
           </Box>
         </Toolbar>

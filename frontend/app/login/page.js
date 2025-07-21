@@ -46,7 +46,7 @@ export default function LoginPage() {
         setOpen(true);
         return;
       }
-      
+
       const data = await response.json();
 
       localStorage.setItem('token', data.token); // salva token
@@ -66,20 +66,30 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <Snackbar open={open} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} autoHideDuration={6000} onClose={handleClose}>
-            <Alert
-              severity="error"
-              onClose={handleClose}
-              variant="filled"
-              sx={{ width: '100%' }}
-            >
-              Credenciais inválidas. Por favor, tente novamente.
-            </Alert>
-          </Snackbar>
+        <Alert
+          severity="error"
+          onClose={handleClose}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          Credenciais inválidas. Por favor, tente novamente.
+        </Alert>
+      </Snackbar>
 
       <div className="w-full max-w-md p-3 relative min-h-[300px]">
         <div className="absolute inset-0">
           <CardContent>
-            <Image src="/images/logo.png" alt="image" width={100} height={100} className="mx-auto mb-6" />
+            <Image
+              src="/images/logo.png"
+              alt="image"
+              width={0}
+              height={0}
+              sizes="100vw"
+              style={{ width: '100px', height: 'auto' }}
+              className="mx-auto mb-6"
+              priority
+            />
+
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
 
               <TextField
@@ -109,7 +119,7 @@ export default function LoginPage() {
                         edge="end"
                         aria-label="toggle password visibility"
                       >
-                        {mostrarSenha ? <VisibilityOffIcon/> : <VisibilityIcon />}
+                        {mostrarSenha ? <VisibilityOffIcon /> : <VisibilityIcon />}
                       </IconButton>
                     </InputAdornment>
                   }
@@ -120,16 +130,16 @@ export default function LoginPage() {
                 Entrar
               </Button>
 
-                  <Typography variant="body2" color="textSecondary" align="center" style={{ marginTop: '16px' }}>
-                  Não tem uma conta? <Link
-                    color="secondary"
-                    underline="none"
-                    onClick={registrar}
-                    style={{ cursor: 'pointer', textAlign: 'center' }}
-                  >
-                    Registre-se
-                  </Link>
-                </Typography>
+              <Typography variant="body2" color="textSecondary" align="center" style={{ marginTop: '16px' }}>
+                Não tem uma conta? <Link
+                  color="secondary"
+                  underline="none"
+                  onClick={registrar}
+                  style={{ cursor: 'pointer', textAlign: 'center' }}
+                >
+                  Registre-se
+                </Link>
+              </Typography>
 
             </form>
           </CardContent>

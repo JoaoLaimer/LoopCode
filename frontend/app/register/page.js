@@ -70,7 +70,7 @@ export default function RegisterPage() {
         setOpen(true);
         return;
       }
-      
+
       // Login user
       const loginResponse = await fetch(`${baseUrl}/auth/login`, {
         method: 'POST',
@@ -98,25 +98,28 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <Snackbar open={open} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} autoHideDuration={6000} onClose={handleClose}>
-      <Alert
-        severity="error"
-        onClose={handleClose}
-        variant="filled"
-        sx={{ width: '100%' }}
-      >
-        Ocorreu um erro ao registrar. Tente novamente.
-      </Alert>
-    </Snackbar>
+        <Alert
+          severity="error"
+          onClose={handleClose}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          Ocorreu um erro ao registrar. Tente novamente.
+        </Alert>
+      </Snackbar>
 
       <div className="w-full max-w-md p-3 relative min-h-[450px]">
         <div className="absolute inset-0">
           <CardContent>
             <Image
               src="/images/logo.png"
-              alt="Logo"
-              width={100}
-              height={100}
+              alt="image"
+              width={0}
+              height={0}
+              sizes="100vw"
+              style={{ width: '100px', height: 'auto' }}
               className="mx-auto mb-6"
+              priority
             />
 
             <form onSubmit={handleRegistro} className="flex flex-col gap-4">
@@ -198,16 +201,16 @@ export default function RegisterPage() {
                 Registrar
               </Button>
 
-                <Typography variant="body2" color="textSecondary" align="center" style={{ marginTop: '16px' }}>
-                  Já tem uma conta? <Link
-                    color="secondary"
-                    underline="none"
-                    onClick={login}
-                    style={{ cursor: 'pointer', textAlign: 'center' }}
-                  >
-                    Faça login
-                  </Link>
-                </Typography>
+              <Typography variant="body2" color="textSecondary" align="center" style={{ marginTop: '16px' }}>
+                Já tem uma conta? <Link
+                  color="secondary"
+                  underline="none"
+                  onClick={login}
+                  style={{ cursor: 'pointer', textAlign: 'center' }}
+                >
+                  Faça login
+                </Link>
+              </Typography>
 
             </form>
           </CardContent>
