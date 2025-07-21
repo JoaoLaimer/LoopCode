@@ -1,7 +1,10 @@
 package com.loopcode.loopcode.dtos;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+
+import com.loopcode.loopcode.domain.exercise.TestCase;
 
 public record ExerciseResponseDto(
     UUID id,
@@ -11,5 +14,8 @@ public record ExerciseResponseDto(
     String description,
     SimpleUserDto createdBy,
     boolean verified,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    String mainCode,
+    List<TestCase> testCode
+
 ) {}

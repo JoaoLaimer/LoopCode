@@ -185,7 +185,9 @@ public class ExerciseService {
             exercise.getDescription(),
             userDto,
             exercise.isVerified(),
-            exercise.getCreatedAt()
+            exercise.getCreatedAt(),
+            exercise.getMainCode(),
+            exercise.getTestCode()
         );
 
     }
