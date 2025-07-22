@@ -2,25 +2,20 @@
 
 import React, { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
-import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  Chip,
-  useTheme,
-} from "@mui/material";
+import { Box, Typography, Button, Chip } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import CodeIcon from "@mui/icons-material/Code";
+import CheckIcon from "@mui/icons-material/Check";
 
 export default function ExercisePage({ params }) {
   const actualParams = React.use(params);
   const { id } = actualParams;
 
-  const [nums, setNums] = useState("2, 7, 11, 15");
-  const [target, setTarget] = useState("9");
   const [resultado, setResultado] = useState("");
-  const [selectedCase, setSelectedCase] = useState(0);
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [code, setCode] = useState("");
+  const [nums, setNums] = useState("");
+  const [caseResults, setCaseResults] = useState([]);
 
   const getExercise = async (id) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -28,7 +23,6 @@ export default function ExercisePage({ params }) {
       const response = await fetch(`${baseUrl}/exercises/${id}`, {
         method: "GET",
       });
-      // if (!response.ok) throw new Error("Erro ao buscar exercício");
       if (!response.ok) {
         window.location.href = "/not-found";
       }
@@ -52,15 +46,70 @@ export default function ExercisePage({ params }) {
     fetchData();
   }, [id]);
 
-  const [code, setCode] = useState(`No data to display yet.`);
+  useEffect(() => {
+    if (exercise?.mainCode) {
+      const pattern = /def\s+[a-zA-Z_]\w*\s*\(.*?\):\n\t/;
+      const match = exercise.mainCode.match(pattern);
+      if (match) {
+        setCode(match[0]);
+      } else {
+        console.warn("No match found in mainCode");
+      }
+    }
+  }, [exercise]);
 
-  const testCases = [
-    // Example test cases
-  ];
+  useEffect(() => {
+    if (exercise?.testCode?.length > 0) {
+      setNums(exercise.testCode[0].input);
+    }
+  }, [exercise]);
+
+  const testCases =
+    exercise?.testCode?.map((test) => ({
+      input: test.input,
+      expectedOutput: test.expectedOutput,
+    })) || [];
+
+  const handleTestCaseSelect = (index) => {
+    setSelectedCase(index);
+    setNums(testCases[index].input);
+    setResultado(caseResults[index]?.output || "");
+  };
 
   const handleRun = async (e) => {
     e.preventDefault();
     setResultado("Executando...");
+    setCaseResults([]);
+
+    const extractBody = (code) => {
+      const match = code.match(/def\s+[a-zA-Z_]\w*\s*\(.*?\):\s*\n([\s\S]*)/);
+      if (!match) return "";
+
+      const body = match[1];
+
+      const lines = body.split("\n");
+
+      const transformed = lines
+        .map((line, index) => {
+          const matchSpaces = line.match(/^( {4})*/);
+          const leadingSpaces = matchSpaces ? matchSpaces[0].length : 0;
+          const tabCount = leadingSpaces / 4;
+
+          const trimmedLine = line.slice(leadingSpaces);
+
+          const tabs =
+            index === 0 && tabCount > 0
+              ? "\t".repeat(tabCount - 1)
+              : "\t".repeat(tabCount);
+
+          return `${tabs}${trimmedLine}`;
+        })
+        .join("\n");
+
+      return transformed;
+    };
+
+    const userCode = extractBody(code);
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -73,25 +122,28 @@ export default function ExercisePage({ params }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ code: code }),
+        body: JSON.stringify({ code: userCode }),
       });
 
       if (!response.ok) throw new Error("Erro ao executar o código");
 
       const data = await response.json();
 
-      if (data.feedback === "Ocorreu um erro de compilacão ou execucão:") {
+      if (data.feedback === "Voce passou em todos os testes!") {
+        setResultado(data.feedback);
+        const passed = testCases.map((t) => ({
+          status: "pass",
+          output: t.expectedOutput,
+        }));
+        setCaseResults(passed);
+      } else if (
+        data.feedback === "Ocorreu um erro de compilacão ou execucão:"
+      ) {
         setResultado(data.output);
-      } else {
-        setResultado(data.feedback || "Nenhum resultado retornado");
       }
     } catch (err) {
       setResultado(`Erro: ${err.message}`);
     }
-  };
-
-  const handleTestCaseSelect = (index) => {
-    // Set the selected test case
   };
 
   return (
@@ -156,13 +208,21 @@ export default function ExercisePage({ params }) {
             whiteSpace: "pre-wrap",
           }}
         >
-          {`Exemplos de Entrada e Saída:`}
+          {`${testCases
+            .map((test, index) => {
+              const inputStr = `Input: ${test.input}`;
+              const result = caseResults[index];
+              const outputLine = result?.output
+                ? `Output: ${result.output}`
+                : `Output: ${test.expectedOutput}`;
+              return `${inputStr.padEnd(20)}${outputLine}`;
+            })
+            .join("\n")}`}
         </Box>
       </Box>
 
       {/* Code & Output Area */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-        {/* Editor */}
         <Box
           sx={{
             bgcolor: "card.primary",
@@ -195,7 +255,6 @@ export default function ExercisePage({ params }) {
           />
         </Box>
 
-        {/* Results / Inputs */}
         <Box sx={{ bgcolor: "card.primary", p: 2, borderRadius: 2 }}>
           <Box
             sx={{
@@ -214,6 +273,11 @@ export default function ExercisePage({ params }) {
                   size="small"
                   variant={selectedCase === index ? "contained" : "outlined"}
                   onClick={() => handleTestCaseSelect(index)}
+                  endIcon={
+                    caseResults[index]?.status === "pass" ? (
+                      <CheckIcon fontSize="small" />
+                    ) : null
+                  }
                 >
                   Caso {index + 1}
                 </Button>
@@ -228,41 +292,21 @@ export default function ExercisePage({ params }) {
             </Button>
           </Box>
 
-          <TextField
-            label="nums"
-            fullWidth
-            value={nums}
-            onChange={(e) => setNums(e.target.value)}
-            variant="outlined"
-            size="small"
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Input:
+          </Typography>
+          <Box
+            component="pre"
             sx={{
-              mb: 2,
-              input: { color: "white" },
-              "& label": { color: "gray" },
-              "& .MuiOutlinedInput-root": {
-                bgcolor: "#0f172a",
-                borderRadius: 1,
-              },
+              bgcolor: "#0f172a",
+              p: 1,
+              borderRadius: 1,
+              color: "white",
+              mb: 1,
             }}
-          />
-
-          <TextField
-            label="target"
-            fullWidth
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            variant="outlined"
-            size="small"
-            sx={{
-              mb: 3,
-              input: { color: "white" },
-              "& label": { color: "gray" },
-              "& .MuiOutlinedInput-root": {
-                bgcolor: "#0f172a",
-                borderRadius: 1,
-              },
-            }}
-          />
+          >
+            {nums}
+          </Box>
 
           <Box>
             <Typography variant="body2" sx={{ mb: 1 }}>
