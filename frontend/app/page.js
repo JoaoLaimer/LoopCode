@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Drawer,
@@ -15,6 +15,7 @@ import {
   ListItemButton,
   ListItemText,
 } from "@mui/material";
+import { useRouter } from "next/navigation";
 import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
@@ -138,9 +139,50 @@ export default function HomePage() {
   const [filtro, setFiltro] = useState("Tudo");
   const [voteStatus, setVoteStatus] = useState(null); // 'up', 'down', or null
 
-  {
-    /* Estado para votos */
-  }
+  const router = useRouter();
+
+  
+
+  const [exercises, setExercises] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0); // começa em 0
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const getExercises = async (page = 0) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const response = await fetch(`${baseUrl}/exercises?page=${page}`, {
+        method: "GET",
+      });
+      if (!response.ok) {
+        window.location.href = "/not-found";
+      }
+      return response.json();
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const data = await getExercises(currentPage);
+      if (data) {
+        setExercises(data.content);
+        setTotalPages(data.totalPages);
+      } else {
+        setExercises([]);
+        setTotalPages(0);
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, [currentPage]);
+
+
+
+  {/* Estado para votos */}
   const handleDownvote = () => {
     if (voteStatus === "down") {
       //  setVotes(votes + 1);
@@ -161,27 +203,6 @@ export default function HomePage() {
     }
   };
 
-  {
-    /* Estado para paginação */
-  }
-  const [pagina, setPagina] = useState(1);
-  const ITENS_POR_PAGINA = 8;
-
-  const totalPaginas = Math.ceil(atividadesMock.length / ITENS_POR_PAGINA);
-
-  const handlePaginaChange = (_, novaPagina) => {
-    setPagina(novaPagina);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
-
-  const atividadesVisiveis = atividadesMock.slice(
-    (pagina - 1) * ITENS_POR_PAGINA,
-    pagina * ITENS_POR_PAGINA
-  );
 
   function handleFireIcon(ex) {
     if (ex.votos > 50) {
@@ -195,8 +216,6 @@ export default function HomePage() {
     <Box
       sx={{ display: "flex", bgcolor: "background.default", color: "white" }}
     >
-      {/* TODO: Implementar a lógica para exibir as listas do usuário e criar um link para elas */}
-      {/* TODO: Implementar a lógica de exibição das atividades após receber da API */}
       {/* TODO: Colocar a opção de filtragem por outras categorias (recente, mais votadas, etc) */}
       {/* Conteúdo principal */}
       <Box
@@ -241,7 +260,7 @@ export default function HomePage() {
             padding: 2,
           }}
         >
-          {atividadesVisiveis.map((atv) => (
+          {exercises.map((atv) => (
             <Box
               key={atv.id}
               sx={{
@@ -256,18 +275,24 @@ export default function HomePage() {
                 width: "100%",
               }}
             >
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography variant="subtitle2" color="gray">
-                  {atv.autor} · {atv.tempo}
-                </Typography>
-              </Box>
-
-              <Typography variant="subtitle1" fontWeight="bold">
-                {atv.titulo}
+              <Typography
+                variant="subtitle1"
+                fontWeight="bold"
+                sx={{
+                  cursor: "pointer",
+                  color: "white",
+                  "&:hover": {
+                    textDecoration: "underline",
+                    color: "primary.main",
+                  },
+                }}
+                onClick={() => router.push(`/activities/${atv.id}`)}
+              >
+                {atv.title}
               </Typography>
-
+              
               <Typography variant="body2" color="gray">
-                {atv.descricao}
+                {atv.description}
               </Typography>
 
               <Stack
@@ -301,7 +326,7 @@ export default function HomePage() {
                       fontSize: "0.875rem",
                     }}
                   >
-                    {atv.votos}
+                    90
                   </Typography>
 
                   <IconButton size="small" onClick={handleDownvote}>
@@ -336,9 +361,9 @@ export default function HomePage() {
         </Stack>
         <Box display="flex" justifyContent="center" mt={4}>
           <Pagination
-            count={totalPaginas}
-            page={pagina}
-            onChange={handlePaginaChange}
+            count={totalPages}
+            page={currentPage + 1}
+            onChange={(_, value) => setCurrentPage(value - 1)}
             color="primary"
           />
         </Box>
