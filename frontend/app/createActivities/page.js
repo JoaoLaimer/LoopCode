@@ -7,25 +7,24 @@ import {
   MenuItem,
   TextField,
   Typography,
-  IconButton,
 } from "@mui/material";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
 
-export default function CriarExercicioPage() {
+export default function CreateExercisePage() {
   const [step, setStep] = useState(1);
 
-  // Etapa 1 - Dados iniciais
-  const [titulo, setTitulo] = useState("");
-  const [linguagem, setLinguagem] = useState("");
-  const [dificuldade, setDificuldade] = useState("");
-  const [descricao, setDescricao] = useState("");
+  // Step 1 - Basic Info
+  const [title, setTitle] = useState("");
+  const [language, setLanguage] = useState("");
+  const [difficulty, setDifficulty] = useState("");
+  const [description, setDescription] = useState("");
 
-  const linguagens = ["JavaScript", "Python", "Java", "C++"];
-  const dificuldades = ["Fácil", "Média", "Difícil"];
+  // Step 2 - Code & Test Cases
+  const [mainCode, setMainCode] = useState("");
+  const [testInput, setTestInput] = useState("");
+  const [expectedOutput, setExpectedOutput] = useState("");
 
-  // Etapa 2 - Importação
-  const [codigoFile, setCodigoFile] = useState(null);
-  const [exercicioFile, setExercicioFile] = useState(null);
+  const languages = ["JavaScript", "Python", "Java", "C++"];
+  const difficulties = ["Easy", "Medium", "Hard"];
 
   const handleNext = () => setStep(2);
   const handleBack = () => setStep(1);
@@ -34,7 +33,7 @@ export default function CriarExercicioPage() {
     <Box
       sx={{
         minHeight: "100vh",
-        bgcolor: "#0B0C1C",
+        bgcolor: "background.default",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
@@ -44,8 +43,8 @@ export default function CriarExercicioPage() {
       <Box
         sx={{
           width: "100%",
-          maxWidth: 600,
-          bgcolor: "#1A1B2E",
+          maxWidth: 700,
+          bgcolor: "background.default",
           p: 4,
           borderRadius: 3,
           boxShadow: 3,
@@ -54,13 +53,13 @@ export default function CriarExercicioPage() {
         {step === 1 && (
           <>
             <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Título do Exercício
+              Exercise Title
             </Typography>
             <TextField
               fullWidth
-              placeholder="Digite o título do exercício"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Enter the exercise title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               sx={{
                 mb: 3,
                 input: { color: "white" },
@@ -69,20 +68,20 @@ export default function CriarExercicioPage() {
             />
 
             <Typography variant="h6" gutterBottom>
-              Linguagem
+              Language
             </Typography>
             <TextField
               select
               fullWidth
-              value={linguagem}
-              onChange={(e) => setLinguagem(e.target.value)}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
               sx={{
                 mb: 3,
                 input: { color: "white" },
                 "& .MuiOutlinedInput-root": { bgcolor: "#0f172a" },
               }}
             >
-              {linguagens.map((lang) => (
+              {languages.map((lang) => (
                 <MenuItem key={lang} value={lang}>
                   {lang}
                 </MenuItem>
@@ -90,20 +89,20 @@ export default function CriarExercicioPage() {
             </TextField>
 
             <Typography variant="h6" gutterBottom>
-              Dificuldade
+              Difficulty
             </Typography>
             <TextField
               select
               fullWidth
-              value={dificuldade}
-              onChange={(e) => setDificuldade(e.target.value)}
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
               sx={{
                 mb: 3,
                 input: { color: "white" },
                 "& .MuiOutlinedInput-root": { bgcolor: "#0f172a" },
               }}
             >
-              {dificuldades.map((dif) => (
+              {difficulties.map((dif) => (
                 <MenuItem key={dif} value={dif}>
                   {dif}
                 </MenuItem>
@@ -111,15 +110,15 @@ export default function CriarExercicioPage() {
             </TextField>
 
             <Typography variant="h6" gutterBottom>
-              Descrição
+              Description
             </Typography>
             <TextField
               multiline
               rows={4}
               fullWidth
-              placeholder="Digite a descrição do exercício"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Enter a description of the exercise"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               sx={{
                 mb: 4,
                 textarea: { color: "white" },
@@ -133,7 +132,7 @@ export default function CriarExercicioPage() {
               onClick={handleNext}
               sx={{ bgcolor: "#6D6AF2", ":hover": { bgcolor: "#5755d9" } }}
             >
-              Próximo
+              Next
             </Button>
           </>
         )}
@@ -141,53 +140,52 @@ export default function CriarExercicioPage() {
         {step === 2 && (
           <>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Importar código principal
+              Main Code Template
             </Typography>
             <TextField
+              multiline
+              minRows={6}
               fullWidth
-              placeholder="Importar código principal"
-              value={codigoFile?.name || ""}
-              InputProps={{
-                endAdornment: (
-                  <IconButton component="label">
-                    <UploadFileIcon sx={{ color: "#aaa" }} />
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => setCodigoFile(e.target.files[0])}
-                    />
-                  </IconButton>
-                ),
-              }}
+              placeholder={`Write the main code with {user_code} placeholder\nEx:\nimport sys\na = int(sys.argv[1])\nb = int(sys.argv[2])\ndef sum(a,b):\n\t{user_code}\nprint(sum(a,b))`}
+              value={mainCode}
+              onChange={(e) => setMainCode(e.target.value)}
               sx={{
                 mb: 3,
-                input: { color: "white" },
+                textarea: { color: "white" },
                 "& .MuiOutlinedInput-root": { bgcolor: "#0f172a" },
               }}
             />
 
             <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Importar exercício
+              Test Inputs
             </Typography>
             <TextField
+              multiline
+              minRows={4}
               fullWidth
-              placeholder="Importar exercício"
-              value={exercicioFile?.name || ""}
-              InputProps={{
-                endAdornment: (
-                  <IconButton component="label">
-                    <UploadFileIcon sx={{ color: "#aaa" }} />
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => setExercicioFile(e.target.files[0])}
-                    />
-                  </IconButton>
-                ),
+              placeholder="One per line (e.g. 5, 10)"
+              value={testInput}
+              onChange={(e) => setTestInput(e.target.value)}
+              sx={{
+                mb: 3,
+                textarea: { color: "white" },
+                "& .MuiOutlinedInput-root": { bgcolor: "#0f172a" },
               }}
+            />
+
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Expected Outputs
+            </Typography>
+            <TextField
+              multiline
+              minRows={4}
+              fullWidth
+              placeholder="One per line (e.g. 15)"
+              value={expectedOutput}
+              onChange={(e) => setExpectedOutput(e.target.value)}
               sx={{
                 mb: 4,
-                input: { color: "white" },
+                textarea: { color: "white" },
                 "& .MuiOutlinedInput-root": { bgcolor: "#0f172a" },
               }}
             />
@@ -198,17 +196,69 @@ export default function CriarExercicioPage() {
                 onClick={handleBack}
                 sx={{ bgcolor: "#6D6AF2" }}
               >
-                Voltar
+                Back
               </Button>
+
               <Button
                 variant="contained"
                 sx={{ bgcolor: "#6D6AF2" }}
-                onClick={() => {
-                  console.log("Criar exercício!");
-                  // aqui você pode fazer o upload ou salvar os dados
+                onClick={async () => {
+                  const languageMap = {
+                    JavaScript: 1,
+                    Python: 2,
+                    Java: 3,
+                    "C++": 4,
+                  };
+
+                  const inputList = testInput
+                    .split("\n")
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  const outputList = expectedOutput
+                    .split("\n")
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+
+                  if (inputList.length !== outputList.length) {
+                    alert("Each input must have a corresponding expected output.");
+                    return;
+                  }
+
+                  const testCases = inputList.map((input, i) => ({
+                    input,
+                    expectedOutput: outputList[i],
+                  }));
+
+                  const requestBody = {
+                    title,
+                    description,
+                    mainCode,
+                    difficulty: difficulty.toUpperCase(),
+                    languageId: languageMap[language],
+                    testCases,
+                  };
+
+                  try {
+                    const response = await fetch("http://localhost:8080/exercises", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify(requestBody),
+                    });
+
+                    if (!response.ok) throw new Error("Error creating exercise");
+
+                    const created = await response.json();
+                    console.log("Exercise created:", created);
+                    alert("Exercise created successfully!");
+                  } catch (err) {
+                    console.error(err);
+                    alert("Failed to create exercise.");
+                  }
                 }}
               >
-                Criar
+                Create
               </Button>
             </Box>
           </>
