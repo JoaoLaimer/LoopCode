@@ -7,18 +7,17 @@ import {
   MenuItem,
   TextField,
   Typography,
+  Alert,
 } from "@mui/material";
 
 export default function CreateExercisePage() {
   const [step, setStep] = useState(1);
 
-  // Step 1 - Basic Info
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [description, setDescription] = useState("");
 
-  // Step 2 - Code & Test Cases
   const [mainCode, setMainCode] = useState("");
   const [testInput, setTestInput] = useState("");
   const [expectedOutput, setExpectedOutput] = useState("");
@@ -28,6 +27,27 @@ export default function CreateExercisePage() {
 
   const handleNext = () => setStep(2);
   const handleBack = () => setStep(1);
+
+  function ModifyMainCode(code) {
+    const regex = /def\s+([a-zA-Z_]\w*)\s*\((.*)\):/;
+    const foundMatch = code.match(regex);
+
+    const functionName = foundMatch[1];
+    const argNames = foundMatch[2];
+
+    let finalCode = "import sys\n";
+
+    const argumentsCount = argNames.split(",").map((p) => p.trim());
+
+    argumentsCount.forEach((param, index) => {
+      finalCode += `${param} = int(sys.argv[${index + 1}])\n`;
+    });
+
+    finalCode += `${code}\n\t{user_code}\n`;
+    finalCode += `print(${functionName}(${argNames}))`;
+
+    return finalCode;
+  }
 
   return (
     <Box
@@ -140,13 +160,13 @@ export default function CreateExercisePage() {
         {step === 2 && (
           <>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Main Code 
+              Código Principal
             </Typography>
             <TextField
               multiline
               minRows={6}
               fullWidth
-              placeholder={`Write the main code with {user_code} placeholder\nEx:\nimport sys\na = int(sys.argv[1])\nb = int(sys.argv[2])\ndef sum(a,b):\n\t{user_code}\nprint(sum(a,b))`}
+              placeholder={`Digite o header da função e seus argumentos, por exemplo:\ndef myFunction(arg1, arg2, ...):`}
               value={mainCode}
               onChange={(e) => setMainCode(e.target.value)}
               sx={{
@@ -163,7 +183,7 @@ export default function CreateExercisePage() {
               multiline
               minRows={4}
               fullWidth
-              placeholder="One per line (e.g. 5, 10)"
+              placeholder="Um por linha (ex: 5, 10)"
               value={testInput}
               onChange={(e) => setTestInput(e.target.value)}
               sx={{
@@ -180,7 +200,7 @@ export default function CreateExercisePage() {
               multiline
               minRows={4}
               fullWidth
-              placeholder="One per line (e.g. 15)"
+              placeholder="Um por linha (ex: 15)"
               value={expectedOutput}
               onChange={(e) => setExpectedOutput(e.target.value)}
               sx={{
@@ -196,7 +216,7 @@ export default function CreateExercisePage() {
                 onClick={handleBack}
                 sx={{ bgcolor: "#6D6AF2" }}
               >
-                Back
+                Voltar
               </Button>
 
               <Button
@@ -207,7 +227,7 @@ export default function CreateExercisePage() {
                     JavaScript: 1,
                     Python: 2,
                     Java: 3,
-                    "C++": 4,
+                    CPP: 4,
                   };
 
                   const inputList = testInput
@@ -220,7 +240,9 @@ export default function CreateExercisePage() {
                     .filter(Boolean);
 
                   if (inputList.length !== outputList.length) {
-                    alert("Each input must have a corresponding expected output.");
+                    alert(
+                      "Each input must have a corresponding expected output."
+                    );
                     return;
                   }
 
@@ -232,33 +254,39 @@ export default function CreateExercisePage() {
                   const requestBody = {
                     title,
                     description,
-                    mainCode,
+                    mainCode: ModifyMainCode(mainCode),
                     difficulty: difficulty.toUpperCase(),
                     languageId: languageMap[language],
                     testCases,
                   };
 
                   try {
-                    const response = await fetch("http://localhost:8080/exercises", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify(requestBody),
-                    });
+                    const response = await fetch(
+                      "http://localhost:8080/exercises",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${localStorage.getItem(
+                            "token"
+                          )}`,
+                        },
+                        body: JSON.stringify(requestBody),
+                      }
+                    );
 
-                    if (!response.ok) throw new Error("Error creating exercise");
+                    if (!response.ok)
+                      throw new Error("Error creating exercise");
 
                     const created = await response.json();
-                    console.log("Exercise created:", created);
-                    alert("Exercise created successfully!");
+                    alert("Exercicio criado com sucesso!");
                   } catch (err) {
                     console.error(err);
-                    alert("Failed to create exercise.");
+                    alert("Falha ao criar exercício.");
                   }
                 }}
               >
-                Create
+                Criar
               </Button>
             </Box>
           </>
