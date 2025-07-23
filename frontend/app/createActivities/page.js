@@ -53,11 +53,11 @@ export default function CreateExercisePage() {
         {step === 1 && (
           <>
             <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Exercise Title
+              Titulo do Exercício
             </Typography>
             <TextField
               fullWidth
-              placeholder="Enter the exercise title"
+              placeholder="Digite o título do exercício"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               sx={{
@@ -68,7 +68,7 @@ export default function CreateExercisePage() {
             />
 
             <Typography variant="h6" gutterBottom>
-              Language
+              Linguagem
             </Typography>
             <TextField
               select
@@ -89,7 +89,7 @@ export default function CreateExercisePage() {
             </TextField>
 
             <Typography variant="h6" gutterBottom>
-              Difficulty
+              Dificuldade
             </Typography>
             <TextField
               select
@@ -110,13 +110,13 @@ export default function CreateExercisePage() {
             </TextField>
 
             <Typography variant="h6" gutterBottom>
-              Description
+              Descrição
             </Typography>
             <TextField
               multiline
               rows={4}
               fullWidth
-              placeholder="Enter a description of the exercise"
+              placeholder="Digite a descrição do exercício"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               sx={{
@@ -140,7 +140,7 @@ export default function CreateExercisePage() {
         {step === 2 && (
           <>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Main Code Template
+              Main Code 
             </Typography>
             <TextField
               multiline
@@ -157,7 +157,7 @@ export default function CreateExercisePage() {
             />
 
             <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Test Inputs
+              Inputs Teste
             </Typography>
             <TextField
               multiline
@@ -174,7 +174,7 @@ export default function CreateExercisePage() {
             />
 
             <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Expected Outputs
+              Outputs Esperados
             </Typography>
             <TextField
               multiline
