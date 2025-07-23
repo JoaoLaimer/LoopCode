@@ -82,9 +82,11 @@ export default function ExercisePage({ params }) {
     setCaseResults([]);
 
     const extractBody = (code) => {
+      let modifiedString = code;
       const patternToRemove = /^def .*\(.*\):\n\t/;
 
-      let modifiedString = code.replaceAll("\t", "    ");
+      modifiedString = modifiedString.replaceAll("\r", "");
+      modifiedString = modifiedString.replaceAll("\t", "    ");
       modifiedString = modifiedString.replaceAll("    ", "\t");
       modifiedString = modifiedString.replace(patternToRemove, "");
 
@@ -106,6 +108,8 @@ export default function ExercisePage({ params }) {
         },
         body: JSON.stringify({ code: userCode }),
       });
+
+      console.log(JSON.stringify({ code: userCode }));
 
       if (!response.ok) throw new Error("Erro ao executar o código");
 
