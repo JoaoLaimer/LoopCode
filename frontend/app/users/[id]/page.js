@@ -24,7 +24,7 @@ export default function PerfilUsuario({ params }) {
                 {/* Informações do usuário coladas no avatar */}
                 <Box className="ml-3 mt-1">
                     <Typography variant="h6">
-                        Usuário {id}
+                        {id}
                     </Typography>
                     <Typography variant="body2" color="gray">
                         user@gmail.com
