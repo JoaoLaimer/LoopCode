@@ -1,9 +1,12 @@
 package com.loopcode.loopcode.service;
 
 import com.loopcode.loopcode.domain.ban.BanRecord;
+import com.loopcode.loopcode.domain.timeout.TimeoutRecord;
 import com.loopcode.loopcode.domain.user.User;
 import com.loopcode.loopcode.dtos.BanRequestDto;
+import com.loopcode.loopcode.dtos.TimeoutRequestDto;
 import com.loopcode.loopcode.repositories.BanRecordRepository;
+import com.loopcode.loopcode.repositories.TimeoutRecordRepository;
 import com.loopcode.loopcode.repositories.UserRepository;
 
 import java.time.LocalDateTime;
@@ -22,11 +25,12 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class UserService {
 
-        @Autowired
+    @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private BanRecordRepository banRecordRepository;
+    @Autowired
+    private TimeoutRecordRepository timeoutRecordRepository;
 
     @Transactional
     public void banUser(String usernameToBan, BanRequestDto banRequestDto) {
@@ -42,13 +46,13 @@ public class UserService {
         User adminUser = userRepository.findByUsername(adminUsername)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Administrador não encontrado."));
 
-        //novo registro de banimento
+        //registro do banimento
         BanRecord banRecord = new BanRecord();
         banRecord.setBannedUser(userToBan);
         banRecord.setAdminUser(adminUser);
         banRecord.setBanReason(banRequestDto.getBanReason());
         banRecord.setBanDate(LocalDateTime.now());
-        banRecord.setActive(true); // marcar como ativo
+        banRecord.setActive(true);
         banRecordRepository.save(banRecord);
     }
 
@@ -57,7 +61,6 @@ public class UserService {
         User userToUnban = userRepository.findByUsername(usernameToUnban)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário a ser desbanido não encontrado."));
 
-        // Encontrar o banimento ativo para desativar
         BanRecord activeBan = banRecordRepository.findByBannedUserAndActiveTrue(userToUnban)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não possui um banimento ativo para ser desbanido."));
 
@@ -68,8 +71,44 @@ public class UserService {
 
         activeBan.setActive(false);
         activeBan.setUnbanDate(LocalDateTime.now());
-        // Opcional: registrar quem desbaniu, se necessário adicionar um campo ao BanRecord para isso
         banRecordRepository.save(activeBan);
+    }
 
+    @Transactional
+    public void applyTimeout(String usernameToTimeout, TimeoutRequestDto timeoutRequestDto){
+        User userToTimeout = userRepository.findByUsername(usernameToTimeout)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        
+        timeoutRecordRepository.findByTimedOutUserAndActiveTrue(userToTimeout).ifPresent(oldTimeout -> {
+                oldTimeout.setActive(false);
+                timeoutRecordRepository.save(oldTimeout);
+        });
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String adminUsername = authentication.getName();
+        User adminUser = userRepository.findByUsername(adminUsername)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Administrador não encontrado."));
+
+        //registra o timeout
+        TimeoutRecord timeoutRecord = new TimeoutRecord();
+        timeoutRecord.setTimedOutUser(userToTimeout);
+        timeoutRecord.setAdminUser(adminUser);
+        timeoutRecord.setReason(timeoutRequestDto.getReason());
+        timeoutRecord.setTimeoutDate(LocalDateTime.now());
+        timeoutRecord.setDurationMinutes(timeoutRequestDto.getDurationMinutes());
+        timeoutRecord.setActive(true);
+        timeoutRecordRepository.save(timeoutRecord);
+    }
+
+    @Transactional
+    public void removeTimeout(String usernameToClearTimeout) {
+        User userToClearTimeout = userRepository.findByUsername(usernameToClearTimeout)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+
+        TimeoutRecord activeTimeout = timeoutRecordRepository.findByTimedOutUserAndActiveTrue(userToClearTimeout)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário não possui um timeout ativo para ser removido."));
+
+        activeTimeout.setActive(false);
+        timeoutRecordRepository.save(activeTimeout);
     }
 }

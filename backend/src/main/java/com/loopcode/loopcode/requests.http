@@ -40,27 +40,50 @@ Content-Type: application/json
   "password": "12346678"
 }
 
-###
+### BANIMENTO
 
 PATCH http://localhost:8084/users/banTest/ban
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZGVzdG8iLCJpYXQiOjE3NTM2NjcyMzAsImV4cCI6MTc1Mzc1MzYzMH0.sjVUTsNnVac1uhEi4hsEDFsTi1y_fxiZEExb4_9aDtA
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZGVzdG8iLCJpYXQiOjE3NTM3MTEzMDcsImV4cCI6MTc1Mzc5NzcwN30.1hKuJbwwymkMRSIvlxSv49Zm6l7smtdA9de7cyc1xZw
 
 {
   "banReason": "TESTE TESTE TESTE"
 }
 
 ###
+
+PATCH http://localhost:8084/users/banTest/unban
+Content-Type: application/json
+Authorization: Bearer {SEU_TOKEN_ADMIN_AQUI}
+
+### TIMEOUT
+
+PATCH http://localhost:8084/users/banTest/timeout
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZGVzdG8iLCJpYXQiOjE3NTM3MTA3MjUsImV4cCI6MTc1Mzc5NzEyNX0.r71kQYV5FTmF24wVlpea7zZhHRVWSXhhbAVgUqSH1x0
+
+{
+  "reason": "TESTE TIMEOUT",
+  "durationMinutes": 1
+}
+
+###
+
+PATCH http://localhost:8084/users/banTest/untimeout
+Content-Type: application/json
+Authorization: Bearer {SEU_TOKEN_ADMIN_AQUI}
+
+###
 POST http://localhost:8084/exercises
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzNjY3MDg5LCJleHAiOjE3NTM3NTM0ODl9.GRNaiQYGRG6njK18lt1CX0o4h8e8l8FhugKpD6g-y7A
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzNzEwODQ1LCJleHAiOjE3NTM3OTcyNDV9.FJrzW1hBId0KNLbgYxFM14W43_LKyVTDqhlJCeiF42M
 
 {
     "title": "Soma de Dois Números",
     "description": "Crie uma função que receba dois números inteiros como parâmetro e retorne a soma deles.",
     "mainCode": "public class Solution {\n    public int somar(int a, int b) {\n        // Seu código aqui\n        return 0;\n    }\n}",
     "difficulty": "EASY",
-    "languageId": 1,
+    "languageId": 2,
     "testCases": [
         {
             "input": "5, 10",
@@ -77,7 +100,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzN
     ]
 }
 
-##
+###
 
 POST http://localhost:8084/exercises/84b0e24d-cf92-42c4-b813-ba3450199234/solve
 Content-Type: application/json

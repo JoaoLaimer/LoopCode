@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.loopcode.loopcode.dtos.BanRequestDto;
+import com.loopcode.loopcode.dtos.TimeoutRequestDto;
 import com.loopcode.loopcode.service.UserService;
 
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,5 +36,21 @@ public class UserController {
     public ResponseEntity<String> unbanUser(@PathVariable String username){
         userService.unbanUser(username);
         return ResponseEntity.ok("Usuário '" + username + "' desbanido com sucesso.");
+    }
+
+        @PatchMapping("/{username}/timeout")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> applyTimeout(@PathVariable String username,
+                                             @RequestBody @Valid TimeoutRequestDto timeoutRequestDto) {
+        userService.applyTimeout(username, timeoutRequestDto);
+        return ResponseEntity.ok("Timeout de " + timeoutRequestDto.getDurationMinutes() +
+                                 " minutos aplicado ao usuário '" + username + "'.");
+    }
+
+    @PatchMapping("/{username}/untimeout")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> clearTimeout(@PathVariable String username) {
+        userService.removeTimeout(username);
+        return ResponseEntity.ok("Timeout do usuário '" + username + "' removido com sucesso.");
     }
 }
