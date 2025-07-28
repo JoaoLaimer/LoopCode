@@ -15,9 +15,12 @@ export default function PerfilUsuario({ params }) {
     const [userData, setUserData] = useState(null);
     const router = useRouter();
 
-    useEffect(() => {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-        const fetchUserData = async () => {
+    const [exercises, setExercises] = useState([]);
+    const [lists, setLists] = useState([]);
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    const fetchUserData = async () => {
             try {
                 const response = await fetch(`${baseUrl}/users/${username}`);
                 if (!response.ok) {
@@ -29,8 +32,26 @@ export default function PerfilUsuario({ params }) {
             } catch (error) {
                 console.error('Error fetching user data:', error);
             }
-        };
+    };
+
+    const fetchExercises = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/users/${username}/exercises`);
+            if (!response.ok) {
+                console.error('Failed to fetch exercises');
+                return;
+            }
+            const data = await response.json();
+            setExercises(data);
+        } catch (error) {
+            console.error('Error fetching exercises:', error);
+        }
+    };
+    useEffect(() => {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+        
         fetchUserData();
+        fetchExercises();
     }, [username]);
 
 
@@ -40,7 +61,7 @@ export default function PerfilUsuario({ params }) {
                 {/* Avatar apenas com largura do conteúdo */}
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Avatar sx={{ width: 120, height: 120, bgcolor: 'primary.main' }}>
-                        <Typography variant="h4" color="white">U</Typography>
+                        <Typography variant="h4" color="white">{userData ? userData.username.charAt(0).toUpperCase() : 'U'}</Typography>
                     </Avatar>
                 </Box>
 
@@ -68,7 +89,7 @@ export default function PerfilUsuario({ params }) {
                             }}
                         >
                             <CodeIcon />
-                            <Typography variant="body2">8</Typography>
+                            <Typography variant="body2">{exercises.length}</Typography>
                         </Card>
 
                         {/* Listas */}
@@ -85,7 +106,7 @@ export default function PerfilUsuario({ params }) {
                             }}
                         >
                             <ListIcon />
-                            <Typography variant="body2">25</Typography>
+                            <Typography variant="body2">{lists.length}</Typography>
                         </Card>
 
                         {/* Daily */}
@@ -119,9 +140,9 @@ export default function PerfilUsuario({ params }) {
                         </Typography>
                         <Box className="rounded-2xl">
                                 <Stack spacing={2}>
-                                    {[1, 2, 3, 4, 5, 6, 7].map((item, i) => (
+                                    {exercises.map((exercicio, i) => (
                                         <Box key={i}>
-                                            <ExercicioItem exercicio={{ id: i, linguagem: 'JavaScript', votes: i * 2 }} />
+                                            <ExercicioItem exercicio={exercicio} />
                                         </Box>
                                     ))}
                                 </Stack>
