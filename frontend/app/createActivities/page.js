@@ -20,10 +20,66 @@ export default function CreateExercisePage() {
   const [difficulty, setDifficulty] = useState("");
   const [description, setDescription] = useState("");
 
-  const [mainCode, setMainCode] = useState("");
   const [testCases, setTestCases] = useState([]);
   const [argNames, setArgNames] = useState([]);
+  const [functionName, setFunctionName] = useState("");
+  const [argumentsList, setArgumentsList] = useState([
+    { name: "", type: "Int" },
+  ]);
   const [errorMessage, setErrorMessage] = useState("");
+
+  function ModifyMainCode(code) {
+    console.log("Modifying main code:", code);
+
+    const regex = /def\s+([a-zA-Z_]\w*)\s*\((.*)\):/;
+    const foundMatch = code.match(regex);
+
+    const functionName = foundMatch[1];
+    const argNames = foundMatch[2];
+
+    let finalCode = "import sys\n";
+
+    const argumentsCount = argNames.split(",").map((p) => p.trim());
+
+    argumentsCount.forEach((param, index) => {
+      finalCode += `${param} = int(sys.argv[${index + 1}])\n`;
+    });
+
+    finalCode += `${code}\n\t{user_code}\n`;
+    finalCode += `print(${functionName}(${argNames}))`;
+
+    return finalCode;
+  }
+
+  const addArgument = () => {
+    setArgumentsList([...argumentsList, { name: "", type: "Int" }]);
+  };
+
+  const updateArgumentName = (index, newName) => {
+    const updated = [...argumentsList];
+    updated[index].name = newName;
+    setArgumentsList(updated);
+  };
+
+  const updateArgumentType = (index, newType) => {
+    const updated = [...argumentsList];
+    updated[index].type = newType;
+    setArgumentsList(updated);
+  };
+
+  const removeArgument = (index) => {
+    const updated = [...argumentsList];
+    updated.splice(index, 1);
+    setArgumentsList(updated);
+  };
+
+  const generateFunctionHeader = () => {
+    const args = argumentsList
+      .filter((arg) => arg.name.trim() !== "")
+      .map((arg) => arg.name)
+      .join(", ");
+    return `def ${functionName}(${args}):`;
+  };
 
   const extractArguments = (code) => {
     const match = code.match(/def\s+\w+\s*\((.*?)\)/);
@@ -35,10 +91,11 @@ export default function CreateExercisePage() {
   };
 
   const addTestCase = () => {
-    const args = extractArguments(mainCode);
+    const funHeader = generateFunctionHeader();
+    const args = extractArguments(funHeader);
     const regex = /def\s+([a-zA-Z_]\w*)\s*\((.*)\):/;
 
-    if (args.length === 0 || !regex.test(mainCode)) {
+    if (args.length === 0 || !regex.test(funHeader)) {
       setErrorMessage("Função inválida ou não definida.");
       return;
     }
@@ -96,27 +153,6 @@ export default function CreateExercisePage() {
   const handleBack = () => setStep(1);
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  function ModifyMainCode(code) {
-    const regex = /def\s+([a-zA-Z_]\w*)\s*\((.*)\):/;
-    const foundMatch = code.match(regex);
-
-    const functionName = foundMatch[1];
-    const argNames = foundMatch[2];
-
-    let finalCode = "import sys\n";
-
-    const argumentsCount = argNames.split(",").map((p) => p.trim());
-
-    argumentsCount.forEach((param, index) => {
-      finalCode += `${param} = int(sys.argv[${index + 1}])\n`;
-    });
-
-    finalCode += `${code}\n\t{user_code}\n`;
-    finalCode += `print(${functionName}(${argNames}))`;
-
-    return finalCode;
-  }
 
   return (
     <Box
@@ -229,22 +265,62 @@ export default function CreateExercisePage() {
 
         {step === 2 && (
           <>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Código Principal
-            </Typography>
-            <TextField
-              multiline
-              minRows={6}
-              fullWidth
-              placeholder={`def myFunction(arg1, arg2, ...):`}
-              value={mainCode}
-              onChange={(e) => setMainCode(e.target.value)}
-              sx={{
-                mb: 3,
-                textarea: { color: "white" },
-                "& .MuiOutlinedInput-root": { bgcolor: "background.default" },
-              }}
-            />
+            <Box>
+              <TextField
+                label="Function Name"
+                value={functionName}
+                onChange={(e) => setFunctionName(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+
+              {argumentsList.map((arg, index) => (
+                <Box key={index} sx={{ display: "flex", gap: 2, mb: 1 }}>
+                  <TextField
+                    label={`Arg ${index + 1} Name`}
+                    value={arg.name}
+                    onChange={(e) => updateArgumentName(index, e.target.value)}
+                  />
+                  <TextField
+                    label="Type"
+                    select
+                    value={arg.type}
+                    onChange={(e) => updateArgumentType(index, e.target.value)}
+                    sx={{ width: 120 }}
+                  >
+                    <MenuItem value="Int">Int</MenuItem>
+                    <MenuItem value="String">String</MenuItem>
+                    <MenuItem value="Array">Array</MenuItem>
+                  </TextField>
+                  <Button
+                    color="error"
+                    onClick={() => removeArgument(index)}
+                    disabled={index === 0}
+                  >
+                    Remove
+                  </Button>
+                </Box>
+              ))}
+
+              <Button variant="contained" onClick={addArgument}>
+                + Adicionar Parâmetro
+              </Button>
+
+              <Box mt={3}>
+                <Typography variant="subtitle1">Função:</Typography>
+                <Box
+                  sx={{
+                    mt: 1,
+                    mb: 2,
+                    p: 2,
+                    bgcolor: "#0f172a",
+                    borderRadius: 1,
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {generateFunctionHeader()}
+                </Box>
+              </Box>
+            </Box>
 
             <Box sx={{ mb: 2 }}>
               <Button variant="contained" onClick={addTestCase}>
@@ -329,7 +405,7 @@ export default function CreateExercisePage() {
                   const requestBody = {
                     title,
                     description,
-                    mainCode: ModifyMainCode(mainCode),
+                    mainCode: ModifyMainCode(String(generateFunctionHeader())),
                     difficulty: difficulty.toUpperCase(),
                     languageId: 2,
                     testCases: formattedTestCases,
