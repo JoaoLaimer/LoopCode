@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -25,7 +25,6 @@ export default function CreateExercisePage() {
   const [argNames, setArgNames] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Função para extrair os argumentos da função escrita
   const extractArguments = (code) => {
     const match = code.match(/def\s+\w+\s*\((.*?)\)/);
     if (!match) return [];
@@ -35,7 +34,6 @@ export default function CreateExercisePage() {
       .filter(Boolean);
   };
 
-  // Função para adicionar um novo caso de teste
   const addTestCase = () => {
     const args = extractArguments(mainCode);
     const regex = /def\s+([a-zA-Z_]\w*)\s*\((.*)\):/;
@@ -48,11 +46,9 @@ export default function CreateExercisePage() {
     setErrorMessage("");
     setArgNames(args);
 
-    // Rebuild all existing test cases with updated argument names
     const updatedCases = testCases.map((test) => {
       const newInputs = {};
       args.forEach((arg) => {
-        // Keep old value if it exists, otherwise set as empty string
         newInputs[arg] = test.inputs[arg] ?? "";
       });
       return {
@@ -62,7 +58,6 @@ export default function CreateExercisePage() {
       };
     });
 
-    // Create new test case with the same args
     const newInputs = {};
     args.forEach((arg) => {
       newInputs[arg] = "";
@@ -77,7 +72,6 @@ export default function CreateExercisePage() {
     setTestCases([...updatedCases, newTestCase]);
   };
 
-  // Manipuladores de input/output
   const handleInputChange = (index, key, value) => {
     const updated = [...testCases];
     updated[index].inputs[key] = value;
@@ -95,8 +89,6 @@ export default function CreateExercisePage() {
     updated.splice(index, 1);
     setTestCases(updated);
   };
-
-  const [expectedOutput, setExpectedOutput] = useState("");
 
   const difficulties = ["Easy", "Medium", "Hard"];
 
@@ -223,6 +215,11 @@ export default function CreateExercisePage() {
               fullWidth
               variant="contained"
               onClick={handleNext}
+              disabled={
+                title.trim() === "" ||
+                description.trim() === "" ||
+                difficulty.trim() === ""
+              }
               sx={{ bgcolor: "#6D6AF2", ":hover": { bgcolor: "#5755d9" } }}
             >
               Próximo
@@ -239,7 +236,7 @@ export default function CreateExercisePage() {
               multiline
               minRows={6}
               fullWidth
-              placeholder={`Digite o header da função e seus argumentos, por exemplo:\ndef myFunction(arg1, arg2, ...):`}
+              placeholder={`def myFunction(arg1, arg2, ...):`}
               value={mainCode}
               onChange={(e) => setMainCode(e.target.value)}
               sx={{
@@ -337,8 +334,6 @@ export default function CreateExercisePage() {
                     languageId: 2,
                     testCases: formattedTestCases,
                   };
-
-                  console.log("Request Body:", requestBody);
 
                   try {
                     const response = await fetch(`${baseUrl}/exercises`, {
