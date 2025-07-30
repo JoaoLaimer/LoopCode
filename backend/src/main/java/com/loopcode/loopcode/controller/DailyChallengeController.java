@@ -15,21 +15,27 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/daily-challenge")
-@Tag(name = "Daily-Challenge", description = "Provavelmente vai ser mudado")
+@Tag(name = "Daily-Challenge", description = "Endpoints do Desafio Diário")
 public class DailyChallengeController {
 
-    private final DailyChallengeService dailyChallengeService;
+    private final DailyChallengeService service;
 
-    public DailyChallengeController(DailyChallengeService dailyChallengeService) {
-        this.dailyChallengeService = dailyChallengeService;
+    public DailyChallengeController(DailyChallengeService service) {
+        this.service = service;
     }
 
     @GetMapping
-    @Operation(summary = "Retorna o exercicio do dia")
+    @Operation(summary = "Retorna o exercício do dia")
     public ResponseEntity<Exercise> getDailyChallenge() {
-        Optional<Exercise> challenge = dailyChallengeService.getDailyChallenge();
-        return challenge.map(ResponseEntity::ok)
+        return service.getDailyChallenge()
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/resolve")
+    @Operation(summary = "Marca o desafio como resolvido pelo usuário logado")
+    public ResponseEntity<Void> resolveDaily(Authentication auth) {
+        service.resolveDaily(auth.getName());
+        return ResponseEntity.ok().build();
+    }
 }
