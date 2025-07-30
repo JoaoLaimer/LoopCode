@@ -18,9 +18,9 @@ public class ExerciseSpecifications {
      */
     public static Specification<Exercise> hasLanguage(String languageName) {
         return (root, query, criteriaBuilder) ->
-                // Acessa o atributo "language" da entidade Exercise,
-                // e então o atributo "name" da entidade ProgrammingLanguage.
-                criteriaBuilder.equal(root.get("language").get("name"), languageName);
+        // Acessa o atributo "language" da entidade Exercise,
+        // e então o atributo "name" da entidade ProgrammingLanguage.
+        criteriaBuilder.equal(root.get("programminglanguage").get("name"), languageName);
     }
 
     /**
@@ -31,10 +31,10 @@ public class ExerciseSpecifications {
      */
     public static Specification<Exercise> hasDifficulty(String difficulty) {
         try {
-            // Converte a string para o Enum correspondente, ignorando maiúsculas/minúsculas.
+            // Converte a string para o Enum correspondente, ignorando
+            // maiúsculas/minúsculas.
             Difficulty diffEnum = Difficulty.valueOf(difficulty.toUpperCase());
-            return (root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("difficulty"), diffEnum);
+            return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("difficulty"), diffEnum);
         } catch (IllegalArgumentException e) {
             // Se a dificuldade fornecida for inválida (ex: "super hard"),
             // retorna uma especificação que não encontrará nenhum resultado.
