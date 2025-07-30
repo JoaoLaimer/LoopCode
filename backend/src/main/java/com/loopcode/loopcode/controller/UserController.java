@@ -33,7 +33,7 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/{username}")
-    @Operation  (summary = "Buscar usuário por nome de usuário", description = "Retorna os detalhes do usuário com base no nome de usuário fornecido.") 
+    @Operation(summary = "Buscar usuário por nome de usuário", description = "Retorna os detalhes do usuário com base no nome de usuário fornecido.")
     public ResponseEntity<UserResponseDto> getUserByUsername(@PathVariable String username) {
         UserResponseDto userResponse = userService.getUserByUsername(username);
         return ResponseEntity.ok(userResponse);
@@ -46,27 +46,35 @@ public class UserController {
         return ResponseEntity.ok(exercises);
     }
 
+    @GetMapping("/{username}/lists")
+    @Operation(summary = "Buscar listas de exercícios do usuário", description = "Retorna todas as listas criadas por um usuário específico.")
+    public ResponseEntity<List<UserListDto>> getListsByUsername(@PathVariable String username) {
+        List<UserListDto> lists = userService.getListsByUsername(username);
+        return ResponseEntity.ok(lists);
+    }
+
     @PatchMapping("/{username}/ban")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> banUser(@PathVariable String username, @RequestBody @Valid BanRequestDto banRequestDto){
+    public ResponseEntity<String> banUser(@PathVariable String username,
+            @RequestBody @Valid BanRequestDto banRequestDto) {
         userService.banUser(username, banRequestDto);
         return ResponseEntity.ok("Usuário '" + username + "' banido com sucesso.");
     }
 
     @PatchMapping("/{username}/unban")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> unbanUser(@PathVariable String username){
+    public ResponseEntity<String> unbanUser(@PathVariable String username) {
         userService.unbanUser(username);
         return ResponseEntity.ok("Usuário '" + username + "' desbanido com sucesso.");
     }
 
-        @PatchMapping("/{username}/timeout")
+    @PatchMapping("/{username}/timeout")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> applyTimeout(@PathVariable String username,
-                                             @RequestBody @Valid TimeoutRequestDto timeoutRequestDto) {
+            @RequestBody @Valid TimeoutRequestDto timeoutRequestDto) {
         userService.applyTimeout(username, timeoutRequestDto);
         return ResponseEntity.ok("Timeout de " + timeoutRequestDto.getDurationMinutes() +
-                                 " minutos aplicado ao usuário '" + username + "'.");
+                " minutos aplicado ao usuário '" + username + "'.");
     }
 
     @PatchMapping("/{username}/untimeout")
