@@ -11,10 +11,10 @@ Para funcionar o exercise/{id}/solve:
 3. O código deve ter uma função de print no final para validar resultado pelo stdout.
 
 ### Documentação:
-http://localhost:8080/swagger-ui/index.html
+http://localhost:8084/swagger-ui/index.html
 
 ### Banco de dados:
-http://localhost:8080/h2-console/
+http://localhost:8084/h2-console/
 
 ## Frontend
 ### Dependências:

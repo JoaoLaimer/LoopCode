@@ -6,9 +6,18 @@ import CreateIcon from '@mui/icons-material/Create';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import MenuIcon from "@mui/icons-material/Menu";
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
+import { usePathname } from 'next/navigation';
+import { useAuth } from '../app/auth-guard';
 
 export default function CustomSpeedDial() {
      const router = useRouter();
+     const pathname = usePathname();
+     const { loading } = useAuth() || {}; 
+     const hiddenRoutes = ['/login', '/register'];
+
+     if (hiddenRoutes.includes(pathname) || loading) {
+          return null;
+     }
 
      return (
           <SpeedDial
