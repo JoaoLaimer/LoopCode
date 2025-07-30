@@ -2,8 +2,6 @@ package com.loopcode.loopcode.domain.challenge;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -28,11 +26,4 @@ public class ChallengeResolution {
 
     @Column(nullable = false)
     private LocalDateTime resolvedAt;
-}
-
-@Embeddable
-@Data
-public class ResolutionKey implements Serializable {
-    private String username;
-    private LocalDate challengeDate;
 }

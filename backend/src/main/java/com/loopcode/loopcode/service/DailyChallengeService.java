@@ -4,7 +4,10 @@ import com.loopcode.loopcode.domain.challenge.DailyChallenge;
 import com.loopcode.loopcode.domain.exercise.Exercise;
 import com.loopcode.loopcode.repositories.DailyChallengeRepository;
 import com.loopcode.loopcode.repositories.ExerciseRepository;
+import com.loopcode.loopcode.repositories.ChallengeResolutionRepository;
+import com.loopcode.loopcode.repositories.UserRepository;
 
+import org.springframework.scheduling.annotation.Scheduled;
 //import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,17 +64,18 @@ public class DailyChallengeService {
 
     @Transactional
     public void resolveDaily(String username) {
-        LocalDate today = LocalDate.now();
-        DailyChallenge dc = dailyChallengeRepository.findByChallengeDate(today)
-                .orElseThrow(() -> new RuntimeException("Desafio diário não definido"));
-        if (resolutionRepository.existsByIdUsernameAndIdChallengeDate(username, today)) {
-            throw new RuntimeException("Você já resolveu o desafio de hoje");
-        }
-        User u = userRepository.findByUsername(username)
-                .orElseThrow();
-        resolutionRepository.save(new ChallengeResolution(
-                new ResolutionKey(username, today),
-                u, dc,
-                LocalDateTime.now()));
+        // LocalDate today = LocalDate.now();
+        // DailyChallenge dc = dailyChallengeRepository.findByChallengeDate(today)
+        // .orElseThrow(() -> new RuntimeException("Desafio diário não definido"));
+        // if (resolutionRepository.existsByIdUsernameAndIdChallengeDate(username,
+        // today)) {
+        // throw new RuntimeException("Você já resolveu o desafio de hoje");
+        // }
+        // User u = userRepository.findByUsername(username)
+        // .orElseThrow();
+        // resolutionRepository.save(new ChallengeResolution(
+        // new ResolutionKey(username, today),
+        // u, dc,
+        // LocalDateTime.now()));
     }
 }

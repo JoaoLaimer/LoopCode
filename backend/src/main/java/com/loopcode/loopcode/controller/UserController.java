@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.loopcode.loopcode.dtos.BanRequestDto;
 import com.loopcode.loopcode.dtos.TimeoutRequestDto;
+import com.loopcode.loopcode.dtos.UserListDto;
 import com.loopcode.loopcode.dtos.UserResponseDto;
 import com.loopcode.loopcode.service.UserService;
 
