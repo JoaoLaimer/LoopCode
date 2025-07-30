@@ -1,7 +1,11 @@
 package com.loopcode.loopcode.domain.challenge;
 
+import com.loopcode.loopcode.domain.user.User;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,13 +19,13 @@ public class ChallengeResolution {
     private ResolutionKey id;
 
     @MapsId("username")
-    @ManyToOne
-    @JoinColumn(name = "username")
-    private com.loopcode.loopcode.domain.user.User user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "username", nullable = false)
+    private User user;
 
     @MapsId("challengeDate")
-    @ManyToOne
-    @JoinColumn(name = "challenge_date")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "challenge_date", nullable = false)
     private DailyChallenge challenge;
 
     @Column(nullable = false)
