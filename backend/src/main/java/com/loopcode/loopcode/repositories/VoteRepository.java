@@ -9,7 +9,6 @@ import java.util.Optional;
 public interface VoteRepository extends JpaRepository<Vote, Long> {
     Optional<Vote> findByExerciseAndUser(Exercise exercise, User user);
 
-    long countByExerciseAndUpvoteTrue(Exercise exercise);
+    long countByExerciseAndVotoValue(Exercise ex, int votoValue);
 
-    long countByExerciseAndUpvoteFalse(Exercise exercise);
 }
