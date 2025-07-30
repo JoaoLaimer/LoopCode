@@ -20,6 +20,11 @@ const theme = createTheme({
       secondary: "#303042ff", // divider
       dark: "#0B0C1C",
     },
+    difficulty: {
+      easy: "#4CAF50", // verde
+      medium: "#FF9800", // laranja
+      hard: "#F44336", // vermelho
+    },
   },
   typography: {
     fontFamily: "Inter, sans-serif",

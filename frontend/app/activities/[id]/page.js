@@ -12,7 +12,7 @@ export default function ExercisePage({ params }) {
   const { id } = actualParams;
 
   const [resultado, setResultado] = useState("");
-  const [selectedCase, setSelectedCase] = useState(null);
+  const [selectedCase, setSelectedCase] = useState(0, null);
   const [code, setCode] = useState("");
   const [nums, setNums] = useState("");
   const [caseResults, setCaseResults] = useState([]);
@@ -159,18 +159,23 @@ export default function ExercisePage({ params }) {
         }}
       >
         <Typography variant="h5" fontWeight="bold" gutterBottom>
-          Exercício: {exercise ? exercise.title : "Carregando..."}
+          {exercise ? exercise.title : "Carregando..."}
         </Typography>
 
-        <Typography variant="body2" color="gray" gutterBottom>
-          Dificuldade: {exercise ? exercise.difficulty : "Carregando..."} —
+        <Typography variant="body2" color="gray" gutterBottom mb={1}>
+          Dificuldade: {exercise ? exercise.difficulty : "Carregando..."} |{" "}
           Linguagem: {exercise ? exercise.language.name : "Carregando..."}
         </Typography>
 
         <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
           <Chip
             label={exercise ? exercise.difficulty : "Carregando..."}
-            sx={{ bgcolor: "#3B82F6", color: "white" }}
+            sx={{
+              bgcolor: `difficulty.${
+                exercise ? exercise.difficulty?.toLowerCase() : "Carregando..."
+              }`,
+              color: "white",
+            }}
           />
           <Chip
             label={exercise ? exercise.language.name : "Carregando..."}
@@ -191,7 +196,7 @@ export default function ExercisePage({ params }) {
           sx={{
             bgcolor: "#212237",
             p: 2,
-            borderRadius: 1,
+            borderRadius: 2,
             fontSize: "0.875rem",
             whiteSpace: "pre-wrap",
           }}
@@ -203,9 +208,9 @@ export default function ExercisePage({ params }) {
               const outputLine = result?.output
                 ? `Output: ${result.output}`
                 : `Output: ${test.expectedOutput}`;
-              return `${inputStr.padEnd(20)}${outputLine}`;
+              return `${inputStr}\n${outputLine}`;
             })
-            .join("\n")}`}
+            .join("\n\n")}`}
         </Box>
       </Box>
 

@@ -42,7 +42,6 @@ export default function CreateExercisePage() {
     const argumentsCount = argNames.split(",").map((p) => p.trim());
 
     argumentsCount.forEach((param, index) => {
-      // Find the argument type from argumentsList
       const argObj = argumentsList.find((a) => a.name === param);
       let parseLine = "";
       if (argObj) {
@@ -279,7 +278,7 @@ export default function CreateExercisePage() {
           <>
             <Box>
               <TextField
-                label="Function Name"
+                label="Nome da Função"
                 value={functionName}
                 onChange={(e) => setFunctionName(e.target.value)}
                 sx={{ mb: 2 }}
@@ -288,18 +287,18 @@ export default function CreateExercisePage() {
               {argumentsList.map((arg, index) => (
                 <Box key={index} sx={{ display: "flex", gap: 2, mb: 1 }}>
                   <TextField
-                    label={`Arg ${index + 1} Name`}
+                    label={`Parâmetro ${index + 1}`}
                     value={arg.name}
                     onChange={(e) => updateArgumentName(index, e.target.value)}
                   />
                   <TextField
-                    label="Type"
+                    label="Tipo"
                     select
                     value={arg.type}
                     onChange={(e) => updateArgumentType(index, e.target.value)}
                     sx={{ width: 120 }}
                   >
-                    <MenuItem value="Int">Int</MenuItem>
+                    <MenuItem value="Int">Integer</MenuItem>
                     <MenuItem value="String">String</MenuItem>
                     <MenuItem value="Array">Array</MenuItem>
                   </TextField>

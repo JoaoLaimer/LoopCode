@@ -42,28 +42,7 @@ public class PistonApiExecutionService implements CodeExecutionService{
 
         List<String> args = new ArrayList<>();
         if (input != null && !input.trim().isEmpty()){
-            StringBuilder currentArg = new StringBuilder();
-            int bracketLevel = 0;
-
-            for (char c : input.toCharArray()) {
-                if (c == '[') {
-                    bracketLevel++;
-                } else if (c == ']') {
-                    if (bracketLevel > 0) {
-                        bracketLevel--;
-                    }
-                }
-
-                if (c == ',' && bracketLevel == 0) {
-                    args.add(currentArg.toString().trim());
-                    currentArg = new StringBuilder();
-                } else {
-                    currentArg.append(c);
-                }
-            }
-            if (currentArg.length() > 0) {
-                args.add(currentArg.toString().trim());
-            }
+            args.addAll(getArgs(input));
         }
 
         PistonExecuteRequest requestPayload = new PistonExecuteRequest(languageIdentifier, version, List.of(file), args);
@@ -106,5 +85,33 @@ public class PistonApiExecutionService implements CodeExecutionService{
                   .replace("\"", "\\\"")
                   .replace("\n", "\\n")
                   .replace("\r", "\\r");
+    }
+
+    private List<String> getArgs(String input) {
+        StringBuilder currentArg = new StringBuilder();
+        List<String> args = new ArrayList<>();
+            int bracketLevel = 0;
+
+            for (char c : input.toCharArray()) {
+                if (c == '[') {
+                    bracketLevel++;
+                } else if (c == ']') {
+                    if (bracketLevel > 0) {
+                        bracketLevel--;
+                    }
+                }
+
+                if (c == ',' && bracketLevel == 0) {
+                    args.add(currentArg.toString().trim());
+                    currentArg = new StringBuilder();
+                } else {
+                    currentArg.append(c);
+                }
+            }
+            if (currentArg.length() > 0) {
+                args.add(currentArg.toString().trim());
+            }
+
+        return args;
     }
 }
