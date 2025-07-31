@@ -26,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 //import org.springframework.data.jpa.repository.JpaRepository;
 //import org.springframework.stereotype.Repository;
@@ -182,9 +183,10 @@ public class ExerciseService {
         int voteCount = ups - downs;
         var auth = SecurityContextHolder.getContext().getAuthentication();
         int userVote = 0;
-        if (auth != null && auth.isAuthenticated()) {
-            userVote = voteRepository.findByExerciseAndUser(exercise,
-                    userRepository.findByUsername(auth.getName()).orElseThrow())
+        if (auth != null && auth instanceof UsernamePasswordAuthenticationToken) {
+            User u = userRepository.findByUsername(auth.getName())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            userVote = voteRepository.findByExerciseAndUser(exercise, u)
                     .map(Vote::getValue).orElse(0);
         }
         return new ExerciseResponseDto(
@@ -197,7 +199,7 @@ public class ExerciseService {
                 exercise.isVerified(),
                 exercise.getCreatedAt(),
                 exercise.getMainCode(),
-                exercise.getTestCode(), voteCount,
+                exercise.getTestCode(), voteCount, ups, downs,
                 userVote);
 
     }
@@ -207,7 +209,6 @@ public class ExerciseService {
         Exercise ex = getExerciseByIdUtil(exerciseId);
         User u = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        int val = up ? +1 : -1;
         Vote v = voteRepository.findByExerciseAndUser(ex, u)
                 .orElseGet(() -> {
                     var x = new Vote();
@@ -215,7 +216,7 @@ public class ExerciseService {
                     x.setUser(u);
                     return x;
                 });
-        v.setValue(val);
+        v.setValue(up ? +1 : -1);
         voteRepository.save(v);
     }
 }

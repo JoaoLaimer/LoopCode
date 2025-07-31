@@ -70,7 +70,7 @@ Authorization: Bearer {{admin_token}}
 ###
 POST http://localhost:8084/exercises
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTEwNDM4LCJleHAiOjE3NTM5OTY4Mzh9.mc5mVQrW_9iQPWwmzIbL5s4RyY0aY4tisuh6sOPVeXg
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTIwNTUwLCJleHAiOjE3NTQwMDY5NTB9.kSm8caKlcB2dF6DvOIb0JI6WWbvu3nq7IlYUqhXEqK4
 
 {
   "title": "Soma de Dois Números",
@@ -86,19 +86,19 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzO
 
 ###
 # 10. Listar exercícios filtrando por linguagem “Java”
-GET http://localhost:8084/exercises?language=Java&page=0&size=1
+GET http://localhost:8084/exercises?language=java&page=0&size=5
 Content-Type: application/json
 
 ###
 # 11. Buscar exercício por ID
-GET http://localhost:8084/exercises/0a2c5fa9-0a66-42ac-9cec-a4458e43f911
+GET http://localhost:8084/exercises/f83cb1f2-4e00-4172-ae0a-ba8e4308c057
 Content-Type: application/json
 
 ###
 # 12. Submeter solução para exercício (solve)
-POST http://localhost:8084/exercises/16e51e3c-84fc-492b-8780-074c354fb630/solve
+POST http://localhost:8084/exercises/f83cb1f2-4e00-4172-ae0a-ba8e4308c057/solve
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTEwNDM4LCJleHAiOjE3NTM5OTY4Mzh9.mc5mVQrW_9iQPWwmzIbL5s4RyY0aY4tisuh6sOPVeXg
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTIwNTUwLCJleHAiOjE3NTQwMDY5NTB9.kSm8caKlcB2dF6DvOIb0JI6WWbvu3nq7IlYUqhXEqK4
 
 {
   "code": "public int somar(int a, int b) { return a + b; }"
@@ -106,35 +106,35 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzO
 
 ###
 # 13. Upvote no exercício
-POST http://localhost:8084/exercises/0a2c5fa9-0a66-42ac-9cec-a4458e43f911/upvote
+POST http://localhost:8084/exercises/f83cb1f2-4e00-4172-ae0a-ba8e4308c057/upvote
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTEwNDM4LCJleHAiOjE3NTM5OTY4Mzh9.mc5mVQrW_9iQPWwmzIbL5s4RyY0aY4tisuh6sOPVeXg
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTIwNTUwLCJleHAiOjE3NTQwMDY5NTB9.kSm8caKlcB2dF6DvOIb0JI6WWbvu3nq7IlYUqhXEqK4
 
 ###
 # 14. Downvote no exercício
-POST http://localhost:8084/exercises/0a2c5fa9-0a66-42ac-9cec-a4458e43f911/downvote
+POST http://localhost:8084/exercises/c9ca97df-93ae-4d99-ad85-b3ff976e46fe/downvote
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTEwNDM4LCJleHAiOjE3NTM5OTY4Mzh9.mc5mVQrW_9iQPWwmzIbL5s4RyY0aY4tisuh6sOPVeXg
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTIwNTUwLCJleHAiOjE3NTQwMDY5NTB9.kSm8caKlcB2dF6DvOIb0JI6WWbvu3nq7IlYUqhXEqK4
 
 ###
 # 15. Criar lista de exercícios para o usuário banTest
 POST http://localhost:8084/users/banTest/lists
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTEwNDM4LCJleHAiOjE3NTM5OTY4Mzh9.mc5mVQrW_9iQPWwmzIbL5s4RyY0aY4tisuh6sOPVeXg
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTIwNTUwLCJleHAiOjE3NTQwMDY5NTB9.kSm8caKlcB2dF6DvOIb0JI6WWbvu3nq7IlYUqhXEqK4
 
 {
   "name": "Minhas Listas Legais",
-  "exerciseIds": ["0a2c5fa9-0a66-42ac-9cec-a4458e43f911"]
+  "exerciseIds": ["43c28a79-7f1b-4782-b164-ba50c089c861", "43c28a79-7f1b-4782-b164-ba50c089c861"]
 }
 
 ###
 # 16. Listar todas as listas de banTest
 GET http://localhost:8084/users/banTest/lists
 Content-Type: application/json
-Authorization: Bearer {{user_token}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTIwNTUwLCJleHAiOjE3NTQwMDY5NTB9.kSm8caKlcB2dF6DvOIb0JI6WWbvu3nq7IlYUqhXEqK4
 
 ###
 # 17. Buscar lista específica por ID
 GET http://localhost:8084/users/banTest/lists/2
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTEwNDM4LCJleHAiOjE3NTM5OTY4Mzh9.mc5mVQrW_9iQPWwmzIbL5s4RyY0aY4tisuh6sOPVeXg
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYW5UZXN0IiwiaWF0IjoxNzUzOTIwNTUwLCJleHAiOjE3NTQwMDY5NTB9.kSm8caKlcB2dF6DvOIb0JI6WWbvu3nq7IlYUqhXEqK4
