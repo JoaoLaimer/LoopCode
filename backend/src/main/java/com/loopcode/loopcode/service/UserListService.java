@@ -65,11 +65,7 @@ public class UserListService {
         }
 
         @Transactional(readOnly = true)
-        public UserListDto getListById(String ownerUsername, Long listId) {
-                userRepository.findByUsername(ownerUsername)
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Usuário não encontrado: " + ownerUsername));
-
+        public UserListDto getListById(Long listId) {
                 UserList list = userListRepository.findById(listId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada: " + listId));
 
@@ -80,7 +76,7 @@ public class UserListService {
                 return new UserListDto(
                                 list.getId(),
                                 list.getName(),
-                                ownerUsername,
+                                list.getOwner().getUsername(),
                                 fullExercises);
         }
 

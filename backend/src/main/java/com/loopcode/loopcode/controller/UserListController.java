@@ -50,7 +50,7 @@ public class UserListController {
     @GetMapping("/lists")
     @Operation(summary = "Retorna todas as listas de todos os usuários (paginado)")
     public ResponseEntity<Page<UserListDto>> allPublicLists(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10) Pageable pageable) {
         Page<UserListDto> lists = listService.getAllLists(pageable);
         return ResponseEntity.ok(lists);
     }
@@ -58,12 +58,8 @@ public class UserListController {
     @GetMapping("/lists/{listId}")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtém uma lista de exercícios pelo ID (com exercícios completos)")
-    public ResponseEntity<UserListDto> getById(
-            @RequestParam("username") String username, // traz o nome via query, ou via token
-            @PathVariable Long listId) {
-        UserListDto dto = listService.getListById(username, listId);
+    public ResponseEntity<UserListDto> getById(@PathVariable Long listId) {
+        UserListDto dto = listService.getListById(listId);
         return ResponseEntity.ok(dto);
     }
 }
-// colocar logica para puxar todos as listas do usuario, como se fosse a logica
-// do puxar todos os exercicios

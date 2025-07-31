@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 export default function ListaItem({ lista }) {
   const router = useRouter();
   const handleBoxClick = () => {
-    router.push(`/users/${lista.ownerUsername}/lists/${lista.id}`);
+    router.push(`/lists/${lista.id}`);
   };
   return (
     <>
@@ -30,7 +30,7 @@ export default function ListaItem({ lista }) {
           {lista.name}
         </Typography>
         <Typography variant="caption" color="gray">
-          {lista.exerciseIds.length} exercícios
+          {lista.exercises.length} exercícios
         </Typography>
       </Box>
     </Box>

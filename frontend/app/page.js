@@ -6,59 +6,151 @@ import {
   Typography,
   Stack,
   Chip,
-  IconButton,
   CircularProgress,
 } from "@mui/material";
+import HomeExerciseItem from "@/components/HomeExerciseItem";
+import HomeListItem from "@/components/HomeListItem";
 import { useRouter } from "next/navigation";
-import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
-import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
-const botaoEstilo = (ativo = false) => ({
-  width: "100%",
-  borderRadius: 1,
-  px: 3,
-  py: 1,
-  my: 0.5,
-  bgcolor: ativo ? "primary.main" : "card.primary",
-  color: "white",
-  "&:hover": {
-    bgcolor: "card.secondary",
-  },
-});
-const filtros = ["Tudo", "Listas", "Exercícios"];
+const filtros = ["Exercícios", "Listas"];
 
 export default function HomePage() {
-  const [filtro, setFiltro] = useState("Tudo");
+  const [filtro, setFiltro] = useState("Exercícios");
 
   const [voteStatusMap, setVoteStatusMap] = useState({});
-
   const [exercises, setExercises] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const observer = useRef();
+  const [lists, setLists] = useState([]);
+  const [currentListPage, setCurrentListPage] = useState(0);
+  const [totalListPages, setTotalListPages] = useState(1);
+  const [loadingLists, setLoadingLists] = useState(false);
+
+  const sentinelRef = useRef(null);
+  const sentinelRefLists = useRef(null);
   const router = useRouter();
 
-  const handleVote = async (exerciseId, type) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    const token = localStorage.getItem("token");
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
+  const getExercises = async (page = 0) => {
     try {
-      const response = await fetch(`${baseUrl}/exercises/${exerciseId}/${type}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(`${baseUrl}/exercises?page=${page}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.ok) throw new Error("Erro ao buscar exercícios");
+      return response.json();
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
 
+  const getLists = async (page = 0) => {
+    try {
+      const response = await fetch(`${baseUrl}/lists?page=${page}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Erro ao buscar listas");
+      return response.json();
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
+  const loadMoreExercises = useCallback(async () => {
+    if (loading || currentPage >= totalPages) return;
+    setLoading(true);
+    const data = await getExercises(currentPage);
+    if (data) {
+      setExercises((prev) => [...prev, ...data.content]);
+
+      const voteMap = {};
+      data.content.forEach((ex) => {
+        if (ex.userVote === 1) voteMap[ex.id] = "up";
+        else if (ex.userVote === -1) voteMap[ex.id] = "down";
+        else voteMap[ex.id] = null;
+      });
+      setVoteStatusMap((prev) => ({ ...prev, ...voteMap }));
+
+      setTotalPages(data.totalPages);
+      setCurrentPage((prev) => prev + 1);
+    }
+    setLoading(false);
+  }, [currentPage, totalPages, loading]);
+
+  const loadMoreLists = useCallback(async () => {
+    if (loadingLists || currentListPage >= totalListPages) return;
+    setLoadingLists(true);
+    const data = await getLists(currentListPage);
+    if (data) {
+      setLists((prev) => [...prev, ...data.content]);
+      setTotalListPages(data.totalPages);
+      setCurrentListPage((prev) => prev + 1);
+    }
+    setLoadingLists(false);
+  }, [currentListPage, totalListPages, loadingLists]);
+
+  useEffect(() => {
+    const sentinel =
+      filtro === "Exercícios" ? sentinelRef.current : sentinelRefLists.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first.isIntersecting) return;
+
+        if (filtro === "Exercícios" && !loading && currentPage < totalPages) {
+          loadMoreExercises();
+        }
+
+        if (
+          filtro === "Listas" &&
+          !loadingLists &&
+          currentListPage < totalListPages
+        ) {
+          loadMoreLists();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      if (sentinel) observer.unobserve(sentinel);
+    };
+  }, [
+    filtro,
+    loading,
+    loadingLists,
+    currentPage,
+    totalPages,
+    currentListPage,
+    totalListPages,
+    loadMoreExercises,
+    loadMoreLists,
+  ]);
+
+  const handleVote = async (exerciseId, type) => {
+    try {
+      const response = await fetch(
+        `${baseUrl}/exercises/${exerciseId}/${type}`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (!response.ok) {
         console.error("Erro ao votar");
         return;
       }
-
-      // Atualiza localmente o contador e status
       updateVoteLocalmente(exerciseId, type);
     } catch (error) {
       console.error("Erro na requisição de voto:", error);
@@ -111,217 +203,83 @@ export default function HomePage() {
     );
   };
 
-  const getExercises = async (page = 0) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    const token = localStorage.getItem("token");
-    try {
-      const response = await fetch(`${baseUrl}/exercises?page=${page}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        window.location.href = "/not-found";
-      }
-      return response.json();
-    } catch (err) {
-      console.error(err);
-      return null;
+  const handleFiltroClick = (item) => {
+    setFiltro(item);
+
+    if (item === "Exercícios" && exercises.length === 0) {
+      loadMoreExercises();
+    }
+
+    if (item === "Listas" && lists.length === 0) {
+      setCurrentListPage(0);
+      setLists([]);
+      loadMoreLists();
     }
   };
-
-  const loadMore = useCallback(async () => {
-    if (loading || currentPage >= totalPages) return;
-    setLoading(true);
-    const data = await getExercises(currentPage);
-    if (data) {
-      setExercises((prev) => [...prev, ...data.content]);
-
-      // Mapeia os votos do usuário para cada exercício
-      const voteMap = {};
-      data.content.forEach((ex) => {
-        if (ex.userVote === 1) voteMap[ex.id] = "up";
-        else if (ex.userVote === -1) voteMap[ex.id] = "down";
-        else voteMap[ex.id] = null;
-      });
-      setVoteStatusMap((prev) => ({ ...prev, ...voteMap }));
-
-      setTotalPages(data.totalPages);
-      setCurrentPage((prev) => prev + 1);
-    }
-    setLoading(false);
-  }, [currentPage, totalPages, loading]);
-
-  const sentinelRef = useRef(null);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const intObserver = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMore();
-        }
-      },
-      { rootMargin: "300px" }
-    );
-
-    intObserver.observe(sentinel);
-    return () => {
-      if (sentinel) intObserver.unobserve(sentinel);
-    };
-  }, [loadMore]);
-
-  const handleDownvote = () => {
-    setVoteStatus((prev) => (prev === "down" ? null : "down"));
-  };
-
-  const handleUpvote = () => {
-    setVoteStatus((prev) => (prev === "up" ? null : "up"));
-  };
-
-  function handleFireIcon(ex) {
-    return ex.votos > 50 ? <LocalFireDepartmentIcon /> : null;
-  }
 
   return (
-    <Box sx={{ display: "flex", bgcolor: "background.default", color: "white" }}>
-      <Box
-        sx={{
-          flex: 1,
-          overflowY: "auto",
-          p: { xs: 2, sm: 3 },
-          maxWidth: {
-            xs: "100%",
-            sm: "700px",
-            md: "900px",
-            lg: "1100px",
-            xl: "1280px",
-          },
-          mx: "auto",
-        }}
-      >
-        <Stack direction="row" spacing={2} mb={3} pl={2} flexWrap="wrap">
-          {filtros.map((item) => (
-            <Chip
-              key={item}
-              label={item}
-              clickable
-              color={filtro === item ? "primary" : "default"}
-              onClick={() => setFiltro(item)}
-              sx={{
-                bgcolor: filtro === item ? "primary.main" : "card.dark",
-                color: "white",
-              }}
-            />
-          ))}
-        </Stack>
+    <Box className="pt-5">
+      <Stack direction="row" spacing={2} mb={3} pl={2} flexWrap="wrap">
+        {filtros.map((item) => (
+          <Chip
+            key={item}
+            label={item}
+            clickable
+            color={filtro === item ? "primary" : "default"}
+            onClick={() => handleFiltroClick(item)}
+            sx={{
+              bgcolor: filtro === item ? "primary.main" : "card.dark",
+              color: "white",
+            }}
+          />
+        ))}
+      </Stack>
 
-        <Stack spacing={2} sx={{ borderRadius: "5px", padding: 2 }}>
-          {exercises.map((atv) => (
-            <Box
-              key={atv.id}
-              onClick={() => router.push(`/exercises/${atv.id}`)}
-              role="button"
-              tabIndex={0}
-              sx={{
-                bgcolor: "card.primary",
-                p: 2,
-                borderRadius: 5,
-                display: "flex",
-                flexDirection: "column",
-                gap: 0.5,
-                boxShadow: 3,
-                width: "100%",
-                cursor: "pointer",
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  boxShadow: 6,
-                  bgcolor: "primary.dark",
-                },
-              }}
-            >
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "white" }}>
-                {atv.title}
-              </Typography>
+      {filtro === "Exercícios" && (
+        <>
+          <Stack spacing={2} sx={{ borderRadius: "5px", padding: 2 }}>
+            {exercises.map((exercise) => (
+              <HomeExerciseItem
+                key={exercise.id}
+                exercise={exercise}
+                voteStatus={voteStatusMap[exercise.id]}
+                onVote={handleVote}
+              />
+            ))}
+          </Stack>
+          <Box ref={sentinelRef} display="flex" justifyContent="center" mt={4}>
+            {loading && <CircularProgress color="primary" />}
+          </Box>
+        </>
+      )}
 
-              <Typography variant="body2" color="gray" mb={1}>
-                Criado por{" "}
-                {atv ? (
-                  <a
-                    href={`/users/${atv.createdBy.username}`}
-                    style={{ color: "#8B5CF6", textDecoration: "none", fontWeight: "bold" }}
-                  >
-                    {atv.createdBy.username}
-                  </a>
-                ) : (
-                  "Carregando..."
-                )}
-              </Typography>
+      {filtro === "Listas" && (
+        <>
+          <Box sx={{ mt: 2, px: 2 }}>
+            <Stack spacing={2}>
+              {lists.length === 0 && !loadingLists && (
+                <Typography color="gray">Nenhuma lista encontrada.</Typography>
+              )}
 
-              <Typography variant="body2" color="gray">
-                {atv.description}
-              </Typography>
+              {lists.map((list) => (
+                <HomeListItem key={list.id} list={list} />
+              ))}
 
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: "auto" }}>
-                {handleFireIcon(atv)}
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    backgroundColor: "card.secondary",
-                    borderRadius: "25px",
-                    px: 0.4,
-                    py: 0.2,
-                    gap: 0.5,
-                    width: "100px",
-                    justifyContent: "space-between",
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleVote(atv.id, "upvote");
-                    }}
-                  >
-                    <ArrowDropUpIcon
-                      sx={{ color: voteStatusMap[atv.id] === "up" ? "red" : "gray" }}
-                    />
-                  </IconButton>
-
-                  <Typography
-                    sx={{ color: "white", fontWeight: "bold", fontSize: "0.875rem" }}
-                  >
-                    {atv.voteCount}
-                  </Typography>
-
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleVote(atv.id, "downvote");
-                    }}
-                  >
-                    <ArrowDropDownIcon
-                      sx={{ color: voteStatusMap[atv.id] === "down" ? "darkblue" : "darkgray" }}
-                    />
-                  </IconButton>
-
+              {loadingLists && (
+                <Box display="flex" justifyContent="center" mt={2}>
+                  <CircularProgress color="primary" />
                 </Box>
-              </Stack>
-            </Box>
-          ))}
-        </Stack>
-
-        {/* Sentinela para carregamento automático */}
-        <Box ref={sentinelRef} display="flex" justifyContent="center" mt={4}>
-          {loading && <CircularProgress color="primary" />}
-        </Box>
-      </Box>
+              )}
+            </Stack>
+            <Box
+              ref={sentinelRefLists}
+              display="flex"
+              justifyContent="center"
+              mt={4}
+            ></Box>
+          </Box>
+        </>
+      )}
     </Box>
   );
 }
