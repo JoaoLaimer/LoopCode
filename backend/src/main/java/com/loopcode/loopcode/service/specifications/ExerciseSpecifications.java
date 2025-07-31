@@ -20,7 +20,7 @@ public class ExerciseSpecifications {
         return (root, query, criteriaBuilder) ->
         // Acessa o atributo "language" da entidade Exercise,
         // e então o atributo "name" da entidade ProgrammingLanguage.
-        criteriaBuilder.equal(root.get("programminglanguage").get("name"), languageName);
+        criteriaBuilder.equal(root.get("programmingLanguage").get("name"), languageName);
     }
 
     /**

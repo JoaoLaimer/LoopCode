@@ -76,10 +76,4 @@ public class Exercise {
         this.createdAt = LocalDateTime.now();
     }
 
-    @Column(nullable = false)
-    private int upvotes = 0;
-
-    @Column(nullable = false)
-    private int downvotes = 0;
-
 }

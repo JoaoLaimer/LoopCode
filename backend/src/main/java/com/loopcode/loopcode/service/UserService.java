@@ -5,6 +5,7 @@ import com.loopcode.loopcode.domain.timeout.TimeoutRecord;
 import com.loopcode.loopcode.domain.user.User;
 import com.loopcode.loopcode.domain.user.UserList;
 import com.loopcode.loopcode.domain.exercise.Exercise;
+import com.loopcode.loopcode.domain.exercise.Vote;
 import com.loopcode.loopcode.dtos.BanRequestDto;
 import com.loopcode.loopcode.dtos.TimeoutRequestDto;
 import com.loopcode.loopcode.dtos.UserListDto;
@@ -18,6 +19,7 @@ import com.loopcode.loopcode.repositories.TimeoutRecordRepository;
 import com.loopcode.loopcode.repositories.UserRepository;
 import com.loopcode.loopcode.repositories.UserListRepository;
 import com.loopcode.loopcode.repositories.ExerciseRepository;
+import com.loopcode.loopcode.repositories.VoteRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,14 +50,18 @@ public class UserService {
         @Autowired
         private UserListRepository userListRepository;
 
+        @Autowired
+        private VoteRepository voteRepository;
+
         public UserService(UserRepository userRepository,
                         UserListRepository userListRepository,
                         BanRecordRepository banRecordRepository, TimeoutRecordRepository timeoutRecordRepository,
-                        ExerciseRepository exerciseRepository) {
+                        ExerciseRepository exerciseRepository, VoteRepository voteRepository) {
                 this.userRepository = userRepository;
                 this.userListRepository = userListRepository;
                 this.banRecordRepository = banRecordRepository;
                 this.timeoutRecordRepository = timeoutRecordRepository;
+                this.voteRepository = voteRepository;
 
         }
 
@@ -172,21 +178,33 @@ public class UserService {
                 List<Exercise> exercises = exerciseRepository.findByCreatedBy(user);
 
                 return exercises.stream()
-                                .map(exercise -> new ExerciseResponseDto(
-                                                exercise.getId(),
-                                                exercise.getTitle(),
-                                                new LanguageDto(
-                                                                exercise.getProgrammingLanguage().getId(),
-                                                                exercise.getProgrammingLanguage().getName()),
-                                                exercise.getDifficulty().name(),
-                                                exercise.getDescription(),
-                                                new SimpleUserDto(
-                                                                exercise.getCreatedBy().getUsername()),
-                                                exercise.isVerified(),
-                                                exercise.getCreatedAt(),
-                                                exercise.getMainCode(),
-                                                exercise.getTestCode(),
-                                                0, 0))
+                                .map(exercise -> {
+                                        int ups = (int) voteRepository.countByExerciseAndVotoValue(exercise, +1);
+                                        int downs = (int) voteRepository.countByExerciseAndVotoValue(exercise, -1);
+                                        int voteCount = ups - downs;
+
+                                        int userVote = voteRepository.findByExerciseAndUser(exercise, user)
+                                                        .map(Vote::getValue)
+                                                        .orElse(0);
+
+                                        return new ExerciseResponseDto(
+                                                        exercise.getId(),
+                                                        exercise.getTitle(),
+                                                        new LanguageDto(
+                                                                        exercise.getProgrammingLanguage().getId(),
+                                                                        exercise.getProgrammingLanguage().getName()),
+                                                        exercise.getDifficulty().name(),
+                                                        exercise.getDescription(),
+                                                        new SimpleUserDto(exercise.getCreatedBy().getUsername()),
+                                                        exercise.isVerified(),
+                                                        exercise.getCreatedAt(),
+                                                        exercise.getMainCode(),
+                                                        exercise.getTestCode(),
+                                                        voteCount,
+                                                        ups,
+                                                        downs,
+                                                        userVote);
+                                })
                                 .toList();
         }
 
