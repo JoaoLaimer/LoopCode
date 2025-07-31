@@ -4,6 +4,7 @@ import com.loopcode.loopcode.domain.user.User;
 import com.loopcode.loopcode.domain.exercise.Exercise;
 import com.loopcode.loopcode.domain.user.UserList;
 import com.loopcode.loopcode.dtos.CreateUserListDto;
+import com.loopcode.loopcode.dtos.ExerciseResponseDto;
 import com.loopcode.loopcode.dtos.UserListDto;
 import com.loopcode.loopcode.exceptions.ResourceNotFoundException;
 import com.loopcode.loopcode.repositories.ExerciseRepository;
@@ -20,74 +21,97 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserListService {
-    private final UserRepository userRepository;
-    private final ExerciseRepository exerciseRepository;
-    private final UserListRepository userListRepository;
 
-    public UserListService(UserRepository userRepository,
-            ExerciseRepository exerciseRepository,
-            UserListRepository userListRepository) {
-        this.userRepository = userRepository;
-        this.exerciseRepository = exerciseRepository;
-        this.userListRepository = userListRepository;
-    }
+        private final UserRepository userRepository;
+        private final ExerciseRepository exerciseRepository;
+        private final UserListRepository userListRepository;
+        private final ExerciseService exerciseService;
 
-    @Transactional
-    public UserListDto createList(String username, CreateUserListDto dto) {
-        User owner = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + username));
+        public UserListService(UserRepository userRepository,
+                        ExerciseRepository exerciseRepository,
+                        UserListRepository userListRepository,
+                        ExerciseService exerciseService) {
+                this.userRepository = userRepository;
+                this.exerciseRepository = exerciseRepository;
+                this.userListRepository = userListRepository;
+                this.exerciseService = exerciseService;
+        }
 
-        UserList list = new UserList();
-        list.setName(dto.name());
-        list.setOwner(owner);
+        @Transactional
+        public UserListDto createList(String username, CreateUserListDto dto) {
+                User owner = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Usuário não encontrado: " + username));
 
-        dto.exerciseIds().forEach(id -> {
-            Exercise ex = exerciseRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Exercício não encontrado: " + id));
-            list.getExercises().add(ex);
-        });
+                UserList list = new UserList();
+                list.setName(dto.name());
+                list.setOwner(owner);
 
-        UserList saved = userListRepository.save(list);
-        return toDto(saved);
-    }
+                dto.exerciseIds().forEach(id -> {
+                        Exercise ex = exerciseRepository.findById(id)
+                                        .orElseThrow(() -> new ResourceNotFoundException(
+                                                        "Exercício não encontrado: " + id));
+                        list.getExercises().add(ex);
+                });
 
-    @Transactional(readOnly = true)
-    public UserListDto getListById(String ownerUsername, Long listId) {
-        UserList list = userListRepository.findByIdAndOwnerUsername(listId, ownerUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada"));
-        return new UserListDto(
-                list.getId(),
-                list.getName(),
-                ownerUsername,
-                list.getExercises().stream()
-                        .map(Exercise::getId)
-                        .collect(Collectors.toSet()));
-    }
+                UserList saved = userListRepository.save(list);
+                return toDto(saved);
+        }
+
+        @Transactional(readOnly = true)
+        public Page<UserListDto> getAllLists(Pageable pageable) {
+                return userListRepository.findAll(pageable)
+                                .map(this::toDto);
+        }
+
+        @Transactional(readOnly = true)
+        public UserListDto getListById(String ownerUsername, Long listId) {
+                userRepository.findByUsername(ownerUsername)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Usuário não encontrado: " + ownerUsername));
+
+                UserList list = userListRepository.findById(listId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada: " + listId));
+
+                List<ExerciseResponseDto> fullExercises = list.getExercises().stream()
+                                .map(e -> exerciseService.getExerciseById(e.getId()))
+                                .collect(Collectors.toList());
+
+                return new UserListDto(
+                                list.getId(),
+                                list.getName(),
+                                ownerUsername,
+                                fullExercises);
+        }
 
         @Transactional(readOnly = true)
         public Page<UserListDto> getListsByUsername(String ownerUsername, Pageable pageable) {
-        Page<UserList> page = userListRepository.findByOwnerUsername(ownerUsername, pageable);
+                userRepository.findByUsername(ownerUsername)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Usuário não encontrado: " + ownerUsername));
 
-        return page.map(l -> new UserListDto(
-                l.getId(),
-                l.getName(),
-                ownerUsername,
-                l.getExercises().stream()
-                .map(Exercise::getId)
-                .collect(Collectors.toSet())
-        ));
+                return userListRepository.findByOwnerUsername(ownerUsername, pageable)
+                                .map(list -> {
+                                        List<ExerciseResponseDto> fullExercises = list.getExercises().stream()
+                                                        .map(e -> exerciseService.getExerciseById(e.getId()))
+                                                        .collect(Collectors.toList());
+                                        return new UserListDto(
+                                                        list.getId(),
+                                                        list.getName(),
+                                                        ownerUsername,
+                                                        fullExercises);
+                                });
         }
 
+        private UserListDto toDto(UserList list) {
+                List<ExerciseResponseDto> fullExercises = list.getExercises().stream()
+                                .map(e -> exerciseService.getExerciseById(e.getId()))
+                                .collect(Collectors.toList());
 
-    private UserListDto toDto(UserList list) {
-        return new UserListDto(
-                list.getId(),
-                list.getName(),
-                list.getOwner().getUsername(),
-                list.getExercises()
-                        .stream()
-                        .map(Exercise::getId)
-                        .collect(Collectors.toSet()));
-    }
-
+                return new UserListDto(
+                                list.getId(),
+                                list.getName(),
+                                list.getOwner().getUsername(),
+                                fullExercises);
+        }
 }

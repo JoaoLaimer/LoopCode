@@ -17,7 +17,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/users/{username}/lists")
 @Tag(name = "UserLists", description = "Operações com listas de exercícios do usuário")
 public class UserListController {
 
@@ -27,7 +26,7 @@ public class UserListController {
         this.listService = listService;
     }
 
-    @PostMapping
+    @PostMapping("/users/{username}/lists")
     @PreAuthorize("#username == authentication.name")
     @Operation(summary = "Cria uma nova lista de exercícios")
     public ResponseEntity<UserListDto> create(
@@ -35,26 +34,36 @@ public class UserListController {
             @RequestBody @Valid CreateUserListDto dto) {
         var created = listService.createList(username, dto);
         return ResponseEntity.status(201).body(created);
+
     }
 
-    @GetMapping
+    @GetMapping("/users/{username}/lists")
     @PreAuthorize("#username == authentication.name")
-    @Operation(summary = "Obtém todas as listas de exercícios do usuário (paginado)")
-    public ResponseEntity<Page<UserListDto>> all(
+    @Operation(summary = "Obtém listas de um usuário tal")
+    public ResponseEntity<Page<UserListDto>> listsByUsername(
             @PathVariable String username,
             @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        
         Page<UserListDto> lists = listService.getListsByUsername(username, pageable);
         return ResponseEntity.ok(lists);
     }
 
+    @GetMapping("/lists")
+    @Operation(summary = "Retorna todas as listas de todos os usuários (paginado)")
+    public ResponseEntity<Page<UserListDto>> allPublicLists(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<UserListDto> lists = listService.getAllLists(pageable);
+        return ResponseEntity.ok(lists);
+    }
 
-    @GetMapping("/{listId}")
-    @PreAuthorize("#username == authentication.name")
-    @Operation(summary = "Obtém uma lista de exercícios pelo ID")
+    @GetMapping("/lists/{listId}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Obtém uma lista de exercícios pelo ID (com exercícios completos)")
     public ResponseEntity<UserListDto> getById(
-            @PathVariable String username,
+            @RequestParam("username") String username, // traz o nome via query, ou via token
             @PathVariable Long listId) {
-        return ResponseEntity.ok(listService.getListById(username, listId));
+        UserListDto dto = listService.getListById(username, listId);
+        return ResponseEntity.ok(dto);
     }
 }
+// colocar logica para puxar todos as listas do usuario, como se fosse a logica
+// do puxar todos os exercicios

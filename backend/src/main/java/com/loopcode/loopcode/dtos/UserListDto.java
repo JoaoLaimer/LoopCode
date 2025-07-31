@@ -1,11 +1,10 @@
 package com.loopcode.loopcode.dtos;
 
-import java.util.Set;
-import java.util.UUID;
+import java.util.List;
 
 public record UserListDto(
-        Long id,
-        String name,
-        String ownerUsername,
-        Set<UUID> exerciseIds) {
+                Long id,
+                String name,
+                String ownerUsername,
+                List<ExerciseResponseDto> exercises) {
 }
