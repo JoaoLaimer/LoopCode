@@ -38,7 +38,7 @@ export default function HomePage() {
 
   const getExercises = async (page = 0) => {
     try {
-      const response = await fetch(`${baseUrl}/exercises?page=${page}`, {
+      const response = await fetch(`${baseUrl}/exercises?page=${page}&sortBy=votes&order=desc`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
