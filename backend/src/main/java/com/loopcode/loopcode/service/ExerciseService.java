@@ -20,10 +20,13 @@ import com.loopcode.loopcode.repositories.UserRepository;
 import com.loopcode.loopcode.repositories.VoteRepository;
 import com.loopcode.loopcode.service.specifications.ExerciseSpecifications;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -98,27 +101,36 @@ public class ExerciseService {
             int size) {
 
         Sort.Direction sortDirection = "desc".equalsIgnoreCase(order) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Sort sort;
-        if ("votes".equalsIgnoreCase(sortBy)) {
-            sort = Sort.by(sortDirection, "upvotes").and(Sort.by(sortDirection, "downvotes"));
-        } else {
-            sort = Sort.by(sortDirection, sortBy != null && !sortBy.isEmpty() ? sortBy : "createdAt");
-        }
+        Sort sort = Sort.by(sortDirection, "createdAt");
 
         PageRequest pageable = PageRequest.of(page, size, sort);
 
-        Specification<Exercise> spec = Specification.allOf();
+        Specification<Exercise> spec = Specification
+                .allOf(Optional.ofNullable(language)
+                        .filter(l -> !l.isBlank() && !"all".equalsIgnoreCase(l))
+                        .map(ExerciseSpecifications::hasLanguage)
+                        .orElse(null))
+                .and(Optional.ofNullable(difficulty)
+                        .filter(d -> !d.isBlank())
+                        .map(ExerciseSpecifications::hasDifficulty)
+                        .orElse(null));
 
-        if (language != null && !language.isBlank() && !"all".equalsIgnoreCase(language)) {
-            spec = spec.and(ExerciseSpecifications.hasLanguage(language));
+        Page<Exercise> page0 = exerciseRepository.findAll(spec, pageable);
+        Page<ExerciseResponseDto> dtos0 = page0.map(this::convertToDto);
+
+        if ("votes".equalsIgnoreCase(sortBy)) {
+            Comparator<ExerciseResponseDto> cmp = Comparator
+                    .comparingInt(ExerciseResponseDto::voteCount);
+            if (sortDirection == Sort.Direction.DESC) {
+                cmp = cmp.reversed();
+            }
+            List<ExerciseResponseDto> sorted = dtos0.getContent().stream()
+                    .sorted(cmp)
+                    .toList();
+            return new PageImpl<>(sorted, pageable, dtos0.getTotalElements());
         }
-        if (difficulty != null && !difficulty.isBlank()) {
-            spec = spec.and(ExerciseSpecifications.hasDifficulty(difficulty));
-        }
 
-        Page<Exercise> exercisePage = exerciseRepository.findAll(spec, pageable);
-
-        return exercisePage.map(this::convertToDto);
+        return dtos0;
     }
 
     private Exercise getExerciseByIdUtil(UUID id) {
@@ -243,21 +255,39 @@ public class ExerciseService {
             String q, String language, String difficulty,
             String sortBy, String order, int page, int size) {
 
-        Sort.Direction dir = "desc".equalsIgnoreCase(order) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Sort sort = Sort.by(dir, sortBy != null ? sortBy : "createdAt");
-        PageRequest pr = PageRequest.of(page, size, sort);
+        Sort.Direction dir = "desc".equalsIgnoreCase(order)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        Sort baseSort = Sort.by(dir, "createdAt");
+        PageRequest pr = PageRequest.of(page, size, baseSort);
 
-        Specification<Exercise> spec = Specification.allOf(ExerciseSpecifications.containsTerm(q));
+        Specification<Exercise> spec = Specification
+                .allOf(ExerciseSpecifications.containsTerm(q))
+                .and(Optional.ofNullable(language)
+                        .filter(l -> !l.isBlank() && !"all".equalsIgnoreCase(l))
+                        .map(ExerciseSpecifications::hasLanguage)
+                        .orElse(null))
+                .and(Optional.ofNullable(difficulty)
+                        .filter(d -> !d.isBlank())
+                        .map(ExerciseSpecifications::hasDifficulty)
+                        .orElse(null));
 
-        if (language != null && !language.isEmpty() && !"all".equalsIgnoreCase(language)) {
-            spec = spec.and(ExerciseSpecifications.hasLanguage(language));
+        Page<Exercise> page0 = exerciseRepository.findAll(spec, pr);
+        Page<ExerciseResponseDto> dtos0 = page0.map(this::convertToDto);
+
+        if ("votes".equalsIgnoreCase(sortBy)) {
+            Comparator<ExerciseResponseDto> cmp = Comparator
+                    .comparingInt(ExerciseResponseDto::voteCount);
+            if (dir == Sort.Direction.DESC) {
+                cmp = cmp.reversed();
+            }
+            List<ExerciseResponseDto> sorted = dtos0.getContent().stream()
+                    .sorted(cmp)
+                    .toList();
+            return new PageImpl<>(sorted, pr, dtos0.getTotalElements());
         }
-        if (difficulty != null && !difficulty.isEmpty()) {
-            spec = spec.and(ExerciseSpecifications.hasDifficulty(difficulty));
-        }
 
-        return exerciseRepository.findAll(spec, pr)
-                .map(this::convertToDto);
+        return dtos0;
     }
 
 }
