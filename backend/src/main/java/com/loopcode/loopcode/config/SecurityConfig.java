@@ -40,10 +40,10 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain h2ConsoleSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher(toH2Console())
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-            .headers(headers -> headers.frameOptions(frame -> frame.disable()));
+                .securityMatcher(toH2Console())
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();
     }
@@ -53,23 +53,28 @@ public class SecurityConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http,
             DaoAuthenticationProvider authenticationProvider) throws Exception {
         http
-            .authenticationProvider(authenticationProvider)
-            .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults()) // ✅ CORS habilitado corretamente aqui
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
-                .requestMatchers(HttpMethod.POST, "/exercises").authenticated()
-                .requestMatchers(HttpMethod.POST, "/exercises/*/solve").authenticated()
-                .requestMatchers(HttpMethod.GET, "/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/auth/validate").permitAll()
-                .requestMatchers(HttpMethod.GET, "/auth/me").authenticated()
-                .requestMatchers(HttpMethod.GET, "/exercises/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/daily-challenge").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/daily-challenge").permitAll()
-                .requestMatchers(HttpMethod.GET, "/").permitAll()
-                .anyRequest().permitAll()) // lembrete: alterar isso depois
-            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .authenticationProvider(authenticationProvider)
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults()) // ✅ CORS habilitado corretamente aqui
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/exercises").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/exercises/*/solve").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auth/validate").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/exercises/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/daily-challenge").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/daily-challenge").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/search").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/users/*/ban", "/users/*/timeout")
+                        .hasAnyRole("MODERATOR", "ADMIN")// nao lembro se eu moderator ou mod
+                        .requestMatchers(HttpMethod.PATCH, "/users/*/role").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/").permitAll()
+                        .anyRequest().permitAll()) // lembrete: alterar isso depois
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

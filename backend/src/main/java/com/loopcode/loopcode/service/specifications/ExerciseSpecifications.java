@@ -41,4 +41,14 @@ public class ExerciseSpecifications {
             return (root, query, criteriaBuilder) -> criteriaBuilder.disjunction();
         }
     }
+
+    public static Specification<Exercise> containsTerm(String term) {
+        return (root, query, cb) -> {
+            String like = "%" + term.toLowerCase() + "%";
+            return cb.or(
+                    cb.like(cb.lower(root.get("title")), like),
+                    cb.like(cb.lower(root.get("description")), like));
+        };
+    }
+
 }

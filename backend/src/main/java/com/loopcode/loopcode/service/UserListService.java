@@ -13,6 +13,7 @@ import com.loopcode.loopcode.repositories.UserRepository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -110,4 +111,16 @@ public class UserListService {
                                 list.getOwner().getUsername(),
                                 fullExercises);
         }
+
+        @Transactional(readOnly = true)
+        public Page<UserListDto> searchLists(
+                        String q, Pageable pageable) {
+
+                Specification<UserList> spec = (root, query, cb) -> cb.like(cb.lower(root.get("name")),
+                                "%" + q.toLowerCase() + "%");
+
+                return userListRepository.findAll(spec, pageable)
+                                .map(this::toDto);
+        }
+
 }

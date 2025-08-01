@@ -98,18 +98,21 @@ public class ExerciseService {
             int size) {
 
         Sort.Direction sortDirection = "desc".equalsIgnoreCase(order) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Sort sort = Sort.by(sortDirection, sortBy != null && !sortBy.isEmpty() ? sortBy : "createdAt"); // Default sort
-                                                                                                        // by createdAt
+        Sort sort;
+        if ("votes".equalsIgnoreCase(sortBy)) {
+            sort = Sort.by(sortDirection, "upvotes").and(Sort.by(sortDirection, "downvotes"));
+        } else {
+            sort = Sort.by(sortDirection, sortBy != null && !sortBy.isEmpty() ? sortBy : "createdAt");
+        }
 
         PageRequest pageable = PageRequest.of(page, size, sort);
 
-        Specification<Exercise> spec = (root, query, builder) -> builder.conjunction();
+        Specification<Exercise> spec = Specification.allOf();
 
-        if (language != null && !language.isEmpty() && !language.equalsIgnoreCase("all")) {
+        if (language != null && !language.isBlank() && !"all".equalsIgnoreCase(language)) {
             spec = spec.and(ExerciseSpecifications.hasLanguage(language));
         }
-
-        if (difficulty != null && !difficulty.isEmpty()) {
+        if (difficulty != null && !difficulty.isBlank()) {
             spec = spec.and(ExerciseSpecifications.hasDifficulty(difficulty));
         }
 
@@ -203,7 +206,7 @@ public class ExerciseService {
         Exercise ex = getExerciseByIdUtil(exerciseId);
         User u = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        
+
         Optional<Vote> existingVoteOpt = voteRepository.findByExerciseAndUser(ex, u);
         int newValue = up ? +1 : -1;
 
@@ -225,6 +228,36 @@ public class ExerciseService {
             v.setValue(newValue);
             voteRepository.save(v);
         }
+    }
+
+    @Transactional
+    public void verifyExercise(UUID id) {
+        Exercise ex = exerciseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exercício não encontrado"));
+        ex.setVerified(true);
+        exerciseRepository.save(ex);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ExerciseResponseDto> searchExercises(
+            String q, String language, String difficulty,
+            String sortBy, String order, int page, int size) {
+
+        Sort.Direction dir = "desc".equalsIgnoreCase(order) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Sort sort = Sort.by(dir, sortBy != null ? sortBy : "createdAt");
+        PageRequest pr = PageRequest.of(page, size, sort);
+
+        Specification<Exercise> spec = Specification.allOf(ExerciseSpecifications.containsTerm(q));
+
+        if (language != null && !language.isEmpty() && !"all".equalsIgnoreCase(language)) {
+            spec = spec.and(ExerciseSpecifications.hasLanguage(language));
+        }
+        if (difficulty != null && !difficulty.isEmpty()) {
+            spec = spec.and(ExerciseSpecifications.hasDifficulty(difficulty));
+        }
+
+        return exerciseRepository.findAll(spec, pr)
+                .map(this::convertToDto);
     }
 
 }

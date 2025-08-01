@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.loopcode.loopcode.dtos.BanRequestDto;
@@ -49,7 +50,7 @@ public class UserController {
     public ResponseEntity<Page<ExerciseResponseDto>> getExercisesByUsername(
             @PathVariable String username,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        
+
         Page<ExerciseResponseDto> exercises = userService.getExercisesByUsername(username, pageable);
         return ResponseEntity.ok(exercises);
     }
@@ -84,4 +85,25 @@ public class UserController {
         userService.removeTimeout(username);
         return ResponseEntity.ok("Timeout do usuário '" + username + "' removido com sucesso.");
     }
+
+    @PatchMapping("/{username}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Altera o papel (role) de um usuário", description = "Somente ADMIN pode promover/demover usuários.")
+
+    public ResponseEntity<Void> changeRole(
+            @PathVariable String username,
+            @RequestParam("role") String role) {
+        userService.changeRole(username, role);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<UserResponseDto>> search(
+            @RequestParam String q,
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        Page<UserResponseDto> result = userService.searchUsers(q, pageable.getPageNumber(), pageable.getPageSize());
+        return ResponseEntity.ok(result);
+    }
+
 }

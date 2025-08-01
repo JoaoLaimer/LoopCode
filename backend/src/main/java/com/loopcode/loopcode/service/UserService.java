@@ -20,6 +20,7 @@ import com.loopcode.loopcode.repositories.UserRepository;
 import com.loopcode.loopcode.repositories.UserListRepository;
 import com.loopcode.loopcode.repositories.ExerciseRepository;
 import com.loopcode.loopcode.repositories.VoteRepository;
+import com.loopcode.loopcode.security.Role;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,7 +29,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -207,4 +210,29 @@ public class UserService {
                                         userVote);
                 });
         }
+
+        @Transactional
+        public void changeRole(String username, String newRole) {
+                User u = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                u.setRole(Role.valueOf(newRole.toUpperCase()));
+                userRepository.save(u);
+        }
+
+        @Transactional(readOnly = true)
+        public Page<UserResponseDto> searchUsers(
+                        String q, int page, int size) {
+
+                Specification<User> spec = (root, query, cb) -> {
+                        String like = "%" + q.toLowerCase() + "%";
+                        return cb.or(
+                                        cb.like(cb.lower(root.get("username")), like),
+                                        cb.like(cb.lower(root.get("email")), like));
+                };
+                PageRequest pr = PageRequest.of(page, size);
+                return userRepository.findAll(spec, pr)
+                                .map(u -> new UserResponseDto(
+                                                u.getUsername(), u.getEmail(), u.getRole().name(), u.getDailyStreak()));
+        }
+
 }

@@ -20,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -102,5 +103,27 @@ public class ExerciseController {
                 SecurityContextHolder.getContext().getAuthentication().getName(),
                 false);
         return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{id}/verify")
+    @PreAuthorize("hasRole('MOD') or hasRole('ADMIN')")
+    public ResponseEntity<Void> verify(@PathVariable UUID id) {
+        exerciseService.verifyExercise(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<ExerciseResponseDto>> search(
+            @RequestParam String q,
+            @RequestParam(required = false) String language,
+            @RequestParam(required = false) String difficulty,
+            @RequestParam(defaultValue = "votes") String sortBy,
+            @RequestParam(defaultValue = "desc") String order,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<ExerciseResponseDto> result = exerciseService.searchExercises(
+            q, language, difficulty, sortBy, order, page, size);
+        return ResponseEntity.ok(result);
     }
 }
