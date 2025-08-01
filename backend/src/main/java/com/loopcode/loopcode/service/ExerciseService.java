@@ -95,7 +95,7 @@ public class ExerciseService {
     public Page<ExerciseResponseDto> getExercises(
             String language,
             String difficulty,
-            String sortBy, // 'createdAt', 'upvotes', etc.
+            String sortBy, // 'createdAt', 'votescount', etc.
             String order, // 'asc' ou 'desc'
             int page,
             int size) {
