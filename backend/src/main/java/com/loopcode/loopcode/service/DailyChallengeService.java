@@ -2,7 +2,6 @@ package com.loopcode.loopcode.service;
 
 import com.loopcode.loopcode.domain.challenge.ChallengeResolution;
 import com.loopcode.loopcode.domain.challenge.DailyChallenge;
-import com.loopcode.loopcode.domain.challenge.ResolutionKey;
 import com.loopcode.loopcode.domain.exercise.Exercise;
 import com.loopcode.loopcode.domain.user.User;
 import com.loopcode.loopcode.repositories.DailyChallengeRepository;
@@ -72,19 +71,19 @@ public class DailyChallengeService {
         DailyChallenge dc = dailyChallengeRepository.findByChallengeDate(today)
                 .orElseThrow(() -> new RuntimeException("Desafio diário não definido"));
 
-        if (resolutionRepository.existsByIdUsernameAndIdChallengeDate(username, today)) {
-            throw new RuntimeException("Você já resolveu o desafio de hoje");
-        }
-
         User u = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
+        if (resolutionRepository.existsByUserAndDailyChallengeChallengeDate(u, today)) {
+            throw new RuntimeException("Você já resolveu o desafio de hoje");
+        }
+
         Optional<ChallengeResolution> lastResOpt = resolutionRepository
-                .findTopByIdUsernameOrderByIdChallengeDateDesc(username);
+                .findTopByUserOrderByDailyChallengeChallengeDateDesc(u);
 
         int newStreak = 1;
         if (lastResOpt.isPresent()) {
-            LocalDate lastDate = lastResOpt.get().getId().getChallengeDate();
+            LocalDate lastDate = lastResOpt.get().getDailyChallenge().getChallengeDate();
             if (lastDate.equals(today.minusDays(1))) {
                 newStreak = u.getDailyStreak() + 1;
             }
@@ -93,13 +92,7 @@ public class DailyChallengeService {
         u.setDailyStreak(newStreak);
         userRepository.save(u);
 
-        ResolutionKey key = new ResolutionKey(username, today);
-        ChallengeResolution resolution = new ChallengeResolution(
-                key,
-                u,
-                dc,
-                LocalDateTime.now());
-
+        ChallengeResolution resolution = new ChallengeResolution(u, dc, LocalDateTime.now());
         resolutionRepository.save(resolution);
     }
 

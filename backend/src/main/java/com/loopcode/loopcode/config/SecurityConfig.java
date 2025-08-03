@@ -65,11 +65,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/auth/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/exercises/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/daily-challenge").permitAll()
-                        // .requestMatchers(HttpMethod.GET, "/api/daily-challenge").permitAll()
                         .requestMatchers(HttpMethod.GET, "/users/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/search").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/users/*/ban", "/users/*/timeout")
-                        .hasAnyRole("MODERATOR", "ADMIN")// nao lembro se eu moderator ou mod
+                        .hasAnyRole("MOD", "ADMIN")// nao lembro se eu moderator ou mod
                         .requestMatchers(HttpMethod.PATCH, "/users/*/role").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/").permitAll()
                         .anyRequest().permitAll()) // lembrete: alterar isso depois

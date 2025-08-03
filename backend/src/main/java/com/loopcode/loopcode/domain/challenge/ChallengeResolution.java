@@ -15,19 +15,24 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ChallengeResolution {
 
-    @EmbeddedId
-    private ResolutionKey id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @MapsId("username")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "username", nullable = false)
     private User user;
 
-    @MapsId("challengeDate")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "challenge_date", nullable = false)
-    private DailyChallenge challenge;
+    @JoinColumn(name = "daily_challenge_id", nullable = false)
+    private DailyChallenge dailyChallenge;
 
     @Column(nullable = false)
     private LocalDateTime resolvedAt;
+
+    public ChallengeResolution(User user, DailyChallenge dailyChallenge, LocalDateTime resolvedAt) {
+        this.user = user;
+        this.dailyChallenge = dailyChallenge;
+        this.resolvedAt = resolvedAt;
+    }
 }

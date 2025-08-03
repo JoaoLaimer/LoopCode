@@ -1,7 +1,7 @@
 package com.loopcode.loopcode.repositories;
 
 import com.loopcode.loopcode.domain.challenge.ChallengeResolution;
-import com.loopcode.loopcode.domain.challenge.ResolutionKey;
+import com.loopcode.loopcode.domain.user.User;
 
 import java.time.LocalDate;
 
@@ -9,9 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface ChallengeResolutionRepository
-        extends JpaRepository<ChallengeResolution, ResolutionKey> {
+        extends JpaRepository<ChallengeResolution, Long> {
 
-    boolean existsByIdUsernameAndIdChallengeDate(String username, LocalDate challengeDate);
+    boolean existsByUserAndDailyChallengeChallengeDate(User user, LocalDate challengeDate);
 
-    Optional<ChallengeResolution> findTopByIdUsernameOrderByIdChallengeDateDesc(String username);
+    Optional<ChallengeResolution> findTopByUserOrderByDailyChallengeChallengeDateDesc(User user);
 }
