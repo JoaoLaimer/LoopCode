@@ -12,6 +12,7 @@ import com.loopcode.loopcode.dtos.LanguageDto;
 import com.loopcode.loopcode.dtos.SimpleUserDto;
 import com.loopcode.loopcode.dtos.SolveRequestDto;
 import com.loopcode.loopcode.dtos.SolveResponseDto;
+import com.loopcode.loopcode.dtos.TestCaseResultDto;
 import com.loopcode.loopcode.exceptions.ResourceNotFoundException;
 import com.loopcode.loopcode.repositories.ExerciseRepository;
 import com.loopcode.loopcode.repositories.ProgrammingLanguageRepository;
@@ -173,29 +174,51 @@ public class ExerciseService {
         String fullCode = exercise.getMainCode();
         fullCode = fullCode.replace("{user_code}", solveDto.code());
 
+        List<TestCaseResultDto> testCaseResults = new java.util.ArrayList<>();
+        boolean allPassed = true;
+        int testCaseCounter = 0;
         for (TestCase testCase : exercise.getTestCode()) {
+            testCaseCounter++;
             ExecutionResultDto result = codeExecutionService.execute(
                     fullCode,
                     testCase.getInput(),
                     apiLanguageIdentifier);
 
-            if (result.error() != null && !result.error().isEmpty()) {
-                return new SolveResponseDto(result.error(), false, "Ocorreu um erro de compilacão ou execucão:", "");
+            String output = result.output();
+            String error = result.error();
+            String expectedOutput = testCase.getExpectedOutput();
+            boolean testPassed;
+
+            if (error != null && !error.isEmpty()) {
+                output = error;
+                testPassed = false;
+                allPassed = false;
+            } else {
+                String normalizedOutput = output.replaceAll("\\s+", "");
+                String normalizedExpectedOutput = expectedOutput.replaceAll("\\s+", "");
+                testPassed = normalizedOutput.equals(normalizedExpectedOutput);
+                if (!testPassed) {
+                    allPassed = false;
+                }
             }
 
-            String normalizedOutput = result.output().replaceAll("\\s+", "");
-            String normalizedExpectedOutput = testCase.getExpectedOutput().replaceAll("\\s+", "");
-
-            if (!normalizedOutput.equals(normalizedExpectedOutput)) {
-                String feedbackMessage = "Falhou no caso de teste com output: \"" + testCase.getExpectedOutput()
-                        + "\".";
-                return new SolveResponseDto(result.output(), false, feedbackMessage, testCase.getExpectedOutput());
-            }
-
+            TestCaseResultDto testCaseResult = new TestCaseResultDto(
+                    testCaseCounter,
+                    output,
+                    expectedOutput,
+                    testPassed);
+            testCaseResults.add(testCaseResult);
         }
-        // Aqui marcar na tabela dos resolvido qnd tiver.
-        return new SolveResponseDto("", true, "Voce passou em todos os testes!", "");
 
+        String message = allPassed ? "Voce passou em todos os testes!" : "Voce nao passou em todos os testes. Veja os detalhes abaixo.";
+        
+        return new SolveResponseDto(
+                testCaseResults,
+                allPassed,
+                message,
+                testCaseResults.stream()
+                        .map(TestCaseResultDto::getExpectedOutput)
+                        .collect(Collectors.joining(", ")));
     }
 
     private ExerciseResponseDto convertToDto(Exercise exercise) {

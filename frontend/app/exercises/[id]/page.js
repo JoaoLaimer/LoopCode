@@ -6,6 +6,7 @@ import { Box, Typography, Button, Chip } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import CodeIcon from "@mui/icons-material/Code";
 import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import ExercicioItem from "@/components/ExercicioItem";
 
 export default function ExercisePage({ params }) {
@@ -13,10 +14,13 @@ export default function ExercisePage({ params }) {
   const { id } = actualParams;
 
   const [resultado, setResultado] = useState("");
-  const [selectedCase, setSelectedCase] = useState(0, null);
+  const [selectedCase, setSelectedCase] = useState(0);
   const [code, setCode] = useState("");
-  const [nums, setNums] = useState("");
+  const [input, setInput] = useState("");
+  const [caseExampleResults, setCaseExampleResults] = useState([]);
   const [caseResults, setCaseResults] = useState([]);
+  const [caseStates, setCaseStates] = useState([]);
+  const [exercise, setExercise] = useState(null);
 
   const getExercise = async (id) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -34,7 +38,6 @@ export default function ExercisePage({ params }) {
     }
   };
 
-  const [exercise, setExercise] = useState(null);
   useEffect(() => {
     const fetchData = async () => {
       const data = await getExercise(id);
@@ -57,11 +60,14 @@ export default function ExercisePage({ params }) {
         console.warn("No match found in mainCode");
       }
     }
+    if (exercise?.testCode?.length > 0) {
+      setCaseStates(Array(exercise.testCode.length).fill(null));
+    }
   }, [exercise]);
 
   useEffect(() => {
     if (exercise?.testCode?.length > 0) {
-      setNums(exercise.testCode[0].input);
+      setInput(exercise.testCode[0].input);
     }
   }, [exercise]);
 
@@ -73,7 +79,7 @@ export default function ExercisePage({ params }) {
 
   const handleTestCaseSelect = (index) => {
     setSelectedCase(index);
-    setNums(testCases[index].input);
+    setInput(testCases[index].input);
     setResultado(caseResults[index]?.output || "");
   };
 
@@ -81,6 +87,7 @@ export default function ExercisePage({ params }) {
     e.preventDefault();
     setResultado("Executando...");
     setCaseResults([]);
+    setCaseStates(Array(testCases.length).fill(null));
 
     const extractBody = (code) => {
       let modifiedString = code;
@@ -116,20 +123,22 @@ export default function ExercisePage({ params }) {
 
       const data = await response.json();
 
-      if (data.feedback === "Voce passou em todos os testes!") {
-        setResultado(data.feedback);
-        const passed = testCases.map((t) => ({
-          status: "pass",
-          output: t.expectedOutput,
-        }));
-        setCaseResults(passed);
-      } else if (
-        data.feedback === "Ocorreu um erro de compilacão ou execucão:"
-      ) {
-        setResultado(data.output);
-      } else {
-        setResultado(data.feedback);
-      }
+      setCaseResults(
+        data.output.map((result) => ({
+          output: result.output,
+          expectedOutput: result.expectedOutput,
+          passed: result.passed,
+        }))
+      );
+      setResultado(data.output[selectedCase]?.output || "");
+
+      setCaseStates((prev) => {
+        const newStates = Array(data.output.length).fill(null);
+        data.output.forEach((result, idx) => {
+          newStates[idx] = result.passed ? "passed" : "failed";
+        });
+        return newStates;
+      });
     } catch (err) {
       setResultado(`Erro: ${err.message}`);
     }
@@ -233,7 +242,7 @@ export default function ExercisePage({ params }) {
           {`${testCases
             .map((test, index) => {
               const inputStr = `Input: ${test.input}`;
-              const result = caseResults[index];
+              const result = caseExampleResults[index];
               const outputLine = result?.output
                 ? `Output: ${result.output}`
                 : `Output: ${test.expectedOutput}`;
@@ -296,8 +305,10 @@ export default function ExercisePage({ params }) {
                   variant={selectedCase === index ? "contained" : "outlined"}
                   onClick={() => handleTestCaseSelect(index)}
                   endIcon={
-                    caseResults[index]?.status === "pass" ? (
+                    caseStates[index] === "passed" ? (
                       <CheckIcon fontSize="small" />
+                    ) : caseStates[index] === "failed" ? (
+                      <CloseIcon fontSize="small" />
                     ) : null
                   }
                 >
@@ -327,7 +338,7 @@ export default function ExercisePage({ params }) {
               mb: 1,
             }}
           >
-            {nums}
+            {input}
           </Box>
 
           <Box>
@@ -338,7 +349,7 @@ export default function ExercisePage({ params }) {
               component="pre"
               sx={{
                 bgcolor: "#0f172a",
-                p: 2,
+                p: 1,
                 borderRadius: 1,
                 color: "white",
               }}

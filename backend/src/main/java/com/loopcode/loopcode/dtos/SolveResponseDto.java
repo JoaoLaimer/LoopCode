@@ -1,7 +1,9 @@
 package com.loopcode.loopcode.dtos;
 
+import java.util.List;
+
 public record SolveResponseDto(
-                String output,
+                List<TestCaseResultDto> output,
                 boolean passed,
                 String feedback,
                 String expectedOutput) {
