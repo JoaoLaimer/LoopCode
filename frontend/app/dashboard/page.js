@@ -132,7 +132,27 @@ function Dashboard() {
         );
       case "exercicios":
         return (
-          <Box>
+          <Box
+            sx={{
+              height: "80vh",
+              overflow: "auto",
+              scrollbarGutter: "stable",
+              "&::-webkit-scrollbar": {
+                width: "8px",
+                backgroundColor: "#232136",
+                borderRadius: "8px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "#5b46d6",
+                borderRadius: "8px",
+              },
+              "&::-webkit-scrollbar-thumb:hover": {
+                backgroundColor: "#7c5fff",
+              },
+              scrollbarWidth: "thin",
+              scrollbarColor: "#5b46d6 #232136",
+            }}
+          >
             {Array.isArray(exercises.content) &&
             exercises.content.length > 0 ? (
               <>
@@ -155,7 +175,9 @@ function Dashboard() {
                         <Typography
                           variant="body2"
                           sx={{
-                            color: exercise.verified ? "lightgreen" : "orange",
+                            color: exercise.verified
+                              ? "lightgreen"
+                              : "lightcoral",
                           }}
                         >
                           {exercise.verified ? "Verificado" : "Não verificado"}
@@ -240,7 +262,14 @@ function Dashboard() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", color: "white", p: 4 }}>
+    <Box
+      sx={{
+        display: "flex",
+        height: "90vh",
+        color: "white",
+        p: 4,
+      }}
+    >
       {/* Sidebar */}
       <Box
         sx={{ width: 400, display: "flex", flexDirection: "column", gap: 4 }}
@@ -251,7 +280,7 @@ function Dashboard() {
           </Typography>
           <Box
             sx={{
-              bgcolor: "#1e1e2e",
+              bgcolor: "card.primary",
               p: 2,
               borderBottomLeftRadius: 8,
               borderBottomRightRadius: 8,

@@ -321,7 +321,9 @@ export default function ExercisePage({ params }) {
                     sx={{ color: "#4caf50", mr: 0.5 }}
                     titleAccess="Verificado"
                   />
-                  Verificado
+                  <Typography variant="body2" color="lightgreen">
+                    Verificado
+                  </Typography>
                 </span>
               ) : (
                 <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -329,7 +331,9 @@ export default function ExercisePage({ params }) {
                     sx={{ color: "#f44336", mr: 0.5, fontSize: 27 }}
                     titleAccess="Não verificado"
                   />
-                  Não Verificado
+                  <Typography variant="body2" color="lightcoral">
+                    Não Verificado
+                  </Typography>
                 </span>
               )}
             </Typography>
