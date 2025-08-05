@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { Box, CircularProgress } from '@mui/material';
+import { createContext, useContext, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Box, CircularProgress } from "@mui/material";
 
 const AuthContext = createContext();
 
@@ -10,10 +10,11 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-const PUBLIC_ROUTES = ['/login', '/register'];
+const PUBLIC_ROUTES = ["/login", "/register"];
 
-export default function AuthGuard({ children }) {
-  const [username, setUsername] = useState(null); 
+export default function AuthGuard({ children, allowedRoles = [] }) {
+  const [username, setUsername] = useState(null);
+  const [role, setRole] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
@@ -21,9 +22,9 @@ export default function AuthGuard({ children }) {
 
   const isPublic = PUBLIC_ROUTES.includes(pathname);
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-  
+
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
 
     // Se rota for pública, não precisa validar token
     if (isPublic) {
@@ -33,7 +34,7 @@ export default function AuthGuard({ children }) {
 
     // Se não tiver token, redireciona para login
     if (!token) {
-      router.replace('/login');
+      router.replace("/login");
       return;
     }
 
@@ -45,18 +46,26 @@ export default function AuthGuard({ children }) {
     })
       .then((res) => {
         if (res.ok) {
-          res.json().then(data => {
+          res.json().then((data) => {
             setUsername(data.username);
-            setAuthorized(true);
+            setRole(data.role);
+
+            const hasAccess =
+              allowedRoles.length === 0 || allowedRoles.includes(data.role);
+            if (hasAccess) {
+              setAuthorized(true);
+            } else {
+              router.replace("/not-found");
+            }
           });
         } else {
-          localStorage.removeItem('token');
-          router.replace('/login');
+          localStorage.removeItem("token");
+          router.replace("/login");
         }
       })
       .catch(() => {
-        localStorage.removeItem('token');
-        router.replace('/login');
+        localStorage.removeItem("token");
+        router.replace("/login");
       })
       .finally(() => setLoading(false));
   }, [pathname]);
@@ -75,24 +84,15 @@ export default function AuthGuard({ children }) {
     );
   }
 
-  // Página pública: renderiza normalmente
-  if (isPublic) {
+  if (isPublic || authorized) {
     return (
-      <AuthContext.Provider value={{ authorized: false, loading, username  }}>
+      <AuthContext.Provider
+        value={{ authorized: false, loading, username, role }}
+      >
         {children}
       </AuthContext.Provider>
     );
   }
 
-  // Página protegida + autorizado: renderiza
-  if (authorized) {
-    return (
-      <AuthContext.Provider value={{ authorized, loading, username }}>
-        {children}
-      </AuthContext.Provider>
-    );
-  }
-
-  // Página protegida + não autorizado: não renderiza nada (já redirecionou)
   return null;
 }
