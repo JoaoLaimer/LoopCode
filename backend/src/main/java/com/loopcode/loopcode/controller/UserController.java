@@ -18,7 +18,6 @@ import com.loopcode.loopcode.dtos.BanRequestDto;
 import com.loopcode.loopcode.dtos.BanRecordResponseDto;
 import com.loopcode.loopcode.dtos.TimeoutRequestDto;
 import com.loopcode.loopcode.dtos.TimeoutRecordResponseDto;
-import com.loopcode.loopcode.dtos.UserListDto;
 import com.loopcode.loopcode.dtos.UserResponseDto;
 import com.loopcode.loopcode.service.UserService;
 
@@ -27,10 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import com.loopcode.loopcode.domain.exercise.Exercise;
 import com.loopcode.loopcode.dtos.ExerciseResponseDto;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -132,6 +128,30 @@ public class UserController {
             @RequestParam(value = "active", required = false) Boolean active) {
 
         Page<TimeoutRecordResponseDto> result = userService.getTimeoutRecords(page, size, active);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/search")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MOD')")
+    @Operation(summary = "Buscar usuários por nome de usuário ou email", description = "Retorna usuários que correspondem ao termo de busca com suporte a paginação.")
+    public ResponseEntity<Page<UserResponseDto>> searchUsers(
+            @RequestParam("q") String query,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+
+        Page<UserResponseDto> result = userService.searchUsers(query, page, size);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/bans/search")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MOD')")
+    @Operation(summary = "Buscar registros de banimento por nome de usuário ou email", description = "Retorna registros de banimento que correspondem ao termo de busca com suporte a paginação.")
+    public ResponseEntity<Page<BanRecordResponseDto>> searchBanRecords(
+            @RequestParam("q") String query,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+
+        Page<BanRecordResponseDto> result = userService.searchBanRecords(query, page, size);
         return ResponseEntity.ok(result);
     }
 

@@ -50,16 +50,28 @@ export default function LoginPage() {
 
       if (!response.ok) {
         if (response.status === 403) {
-          // Handle banned user
-          const errorData = await response.json();
-          if (errorData.error === "BANNED_USER") {
+          try {
+            const errorData = await response.json();
+            if (errorData.error === "BANNED_USER") {
+              setErrorMessage(
+                `Você foi banido permanentemente. Motivo: ${errorData.reason}`
+              );
+            } else {
+              setErrorMessage(
+                "Credenciais inválidas. Por favor, tente novamente."
+              );
+            }
+          } catch {
             setErrorMessage(
-              `Você foi banido permanentemente. Motivo: ${errorData.reason}`
+              "Credenciais inválidas. Por favor, tente novamente."
             );
-            setErrorSeverity("error");
           }
-        } else {
+          setErrorSeverity("error");
+        } else if (response.status === 401) {
           setErrorMessage("Credenciais inválidas. Por favor, tente novamente.");
+          setErrorSeverity("error");
+        } else {
+          setErrorMessage("Erro no servidor. Tente novamente mais tarde.");
           setErrorSeverity("error");
         }
         setOpen(true);

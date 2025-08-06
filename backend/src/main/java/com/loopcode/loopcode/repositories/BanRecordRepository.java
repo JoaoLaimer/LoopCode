@@ -5,10 +5,11 @@ import com.loopcode.loopcode.domain.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 
-public interface BanRecordRepository extends JpaRepository<BanRecord, Long> {
+public interface BanRecordRepository extends JpaRepository<BanRecord, Long>, JpaSpecificationExecutor<BanRecord> {
     Optional<BanRecord> findByBannedUserAndActiveTrue(User bannedUser);
     
     Page<BanRecord> findByActiveTrue(Pageable pageable);

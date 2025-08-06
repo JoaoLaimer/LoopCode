@@ -147,3 +147,7 @@ Content-Type: application/json
 ###
 GET http://localhost:8084/daily-challenge
 Content-Type: application/json
+
+### 19. Buscar registros de banimento por nome de usuário ou email
+GET http://localhost:8084/users/bans/search?q=banTest&page=0&size=10
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZGVzdG8iLCJpYXQiOjE3NTQyNDY4NjQsImV4cCI6MTc1NDMzMzI2NH0.mGV7oXzqfZWFLI_MkFrjjgMRf0CTCUEWDVfCGN8vnFY

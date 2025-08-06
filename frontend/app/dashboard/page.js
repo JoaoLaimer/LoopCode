@@ -23,11 +23,15 @@ import {
   TableRow,
   Paper,
   Chip,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VerifiedUserRounded from "@mui/icons-material/VerifiedUserRounded";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import AuthGuard from "../auth-guard";
 
 function Dashboard() {
@@ -57,6 +61,8 @@ function Dashboard() {
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedRole, setSelectedRole] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   const verifyExercise = async (id) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -84,7 +90,7 @@ function Dashboard() {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
       try {
         const response = await fetch(
-          `${baseUrl}/users?page=${page - 1}&size=10&role=${role}`,
+          `${baseUrl}/users?page=${page - 1}&size=9&role=${role}`,
           {
             method: "GET",
             headers: {
@@ -107,11 +113,101 @@ function Dashboard() {
     [page]
   );
 
+  const searchUsers = useCallback(
+    async (query) => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      try {
+        const response = await fetch(
+          `${baseUrl}/users/search?q=${encodeURIComponent(query)}&page=${
+            page - 1
+          }&size=9`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Search results:", data);
+        return data;
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    },
+    [page]
+  );
+
+  const searchBans = useCallback(
+    async (query) => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      try {
+        const response = await fetch(
+          `${baseUrl}/users/bans/search?q=${encodeURIComponent(query)}&page=${
+            page - 1
+          }&size=9`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Ban search results:", data);
+        return data;
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    },
+    [page]
+  );
+
+  const searchExercises = useCallback(
+    async (query) => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      try {
+        const response = await fetch(
+          `${baseUrl}/exercises/search?q=${encodeURIComponent(query)}&page=${
+            page - 1
+          }&size=9`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Exercise search results:", data);
+        return data;
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    },
+    [page]
+  );
+
   const getExercises = useCallback(async () => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
       const response = await fetch(
-        `${baseUrl}/exercises?page=${page - 1}&size=10`,
+        `${baseUrl}/exercises?page=${page - 1}&size=9`,
         {
           method: "GET",
           headers: {
@@ -136,7 +232,7 @@ function Dashboard() {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
       const response = await fetch(
-        `${baseUrl}/users/bans?page=${page - 1}&size=10&active=true`,
+        `${baseUrl}/users/bans?page=${page - 1}&size=9&active=true`,
         {
           method: "GET",
           headers: {
@@ -160,7 +256,12 @@ function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       if (selectedSection === "exercicios") {
-        const data = await getExercises();
+        let data;
+        if (isSearching && searchQuery.trim()) {
+          data = await searchExercises(searchQuery);
+        } else {
+          data = await getExercises();
+        }
         if (data) {
           setExercises(data);
         } else {
@@ -174,7 +275,12 @@ function Dashboard() {
           console.error("Failed to fetch exercises");
         }
       } else if (selectedSection === "usuarios") {
-        const data = await getUsers("USER");
+        let data;
+        if (isSearching && searchQuery.trim()) {
+          data = await searchUsers(searchQuery);
+        } else {
+          data = await getUsers("USER");
+        }
         if (data) {
           setUsers(data);
         } else {
@@ -188,7 +294,12 @@ function Dashboard() {
           console.error("Failed to fetch users");
         }
       } else if (selectedSection === "moderadores") {
-        const data = await getUsers("MOD");
+        let data;
+        if (isSearching && searchQuery.trim()) {
+          data = await searchUsers(searchQuery);
+        } else {
+          data = await getUsers("MOD");
+        }
         if (data) {
           setUsers(data);
         } else {
@@ -202,7 +313,12 @@ function Dashboard() {
           console.error("Failed to fetch moderators");
         }
       } else if (selectedSection === "administradores") {
-        const data = await getUsers("ADMIN");
+        let data;
+        if (isSearching && searchQuery.trim()) {
+          data = await searchUsers(searchQuery);
+        } else {
+          data = await getUsers("ADMIN");
+        }
         if (data) {
           setUsers(data);
         } else {
@@ -216,7 +332,12 @@ function Dashboard() {
           console.error("Failed to fetch administrators");
         }
       } else if (selectedSection === "bans") {
-        const data = await getBans();
+        let data;
+        if (isSearching && searchQuery.trim()) {
+          data = await searchBans(searchQuery);
+        } else {
+          data = await getBans();
+        }
         if (data) {
           setBans(data);
         } else {
@@ -232,7 +353,18 @@ function Dashboard() {
       }
     };
     fetchData();
-  }, [page, selectedSection, getExercises, getUsers, getBans]);
+  }, [
+    page,
+    selectedSection,
+    getExercises,
+    getUsers,
+    getBans,
+    searchUsers,
+    searchBans,
+    searchExercises,
+    searchQuery,
+    isSearching,
+  ]);
 
   const banUser = async (username) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -388,6 +520,14 @@ function Dashboard() {
   const handleSectionChange = (section) => {
     setSelectedSection(section);
     setPage(1);
+    setSearchQuery("");
+    setIsSearching(false);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setIsSearching(false);
+    setPage(1);
   };
 
   const renderContent = () => {
@@ -397,6 +537,60 @@ function Dashboard() {
       case "administradores":
         return (
           <Box sx={{}}>
+            {/* Search Input */}
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                fullWidth
+                placeholder={`Buscar todos os usuários por nome de usuário ou email...`}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim()) {
+                    setIsSearching(true);
+                    setPage(1);
+                  } else {
+                    setIsSearching(false);
+                    setPage(1);
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery && (
+                    <InputAdornment position="end">
+                      <Button
+                        onClick={handleClearSearch}
+                        sx={{ minWidth: "auto", p: 1 }}
+                      >
+                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+                      </Button>
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    color: "white",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.3)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.5)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                    },
+                  },
+                }}
+                sx={{
+                  "& .MuiInputBase-input::placeholder": {
+                    color: "rgba(255, 255, 255, 0.5)",
+                    opacity: 1,
+                  },
+                }}
+              />
+            </Box>
+
             {Array.isArray(users.content) && users.content.length > 0 ? (
               <>
                 <TableContainer
@@ -461,7 +655,8 @@ function Dashboard() {
                             <Box
                               sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}
                             >
-                              {selectedSection === "usuarios" && (
+                              {(user.role === "USER" ||
+                                user.role === "MOD") && (
                                 <>
                                   <Button
                                     variant="contained"
@@ -470,7 +665,25 @@ function Dashboard() {
                                       banUser(user.username)
                                         .then((result) => {
                                           if (result) {
-                                            return getUsers("USER");
+                                            if (
+                                              isSearching &&
+                                              searchQuery.trim()
+                                            ) {
+                                              return searchUsers(searchQuery);
+                                            } else if (
+                                              selectedSection === "usuarios"
+                                            ) {
+                                              return getUsers("USER");
+                                            } else if (
+                                              selectedSection === "moderadores"
+                                            ) {
+                                              return getUsers("MOD");
+                                            } else if (
+                                              selectedSection ===
+                                              "administradores"
+                                            ) {
+                                              return getUsers("ADMIN");
+                                            }
                                           }
                                         })
                                         .then((data) => {
@@ -551,6 +764,60 @@ function Dashboard() {
       case "bans":
         return (
           <Box sx={{}}>
+            {/* Search Input */}
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                fullWidth
+                placeholder={`Buscar usuários banidos por nome de usuário ou email...`}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim()) {
+                    setIsSearching(true);
+                    setPage(1);
+                  } else {
+                    setIsSearching(false);
+                    setPage(1);
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery && (
+                    <InputAdornment position="end">
+                      <Button
+                        onClick={handleClearSearch}
+                        sx={{ minWidth: "auto", p: 1 }}
+                      >
+                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+                      </Button>
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    color: "white",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.3)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.5)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                    },
+                  },
+                }}
+                sx={{
+                  "& .MuiInputBase-input::placeholder": {
+                    color: "rgba(255, 255, 255, 0.5)",
+                    opacity: 1,
+                  },
+                }}
+              />
+            </Box>
+
             {Array.isArray(bans.content) && bans.content.length > 0 ? (
               <>
                 <TableContainer
@@ -670,6 +937,60 @@ function Dashboard() {
       case "exercicios":
         return (
           <Box sx={{}}>
+            {/* Search Input */}
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                fullWidth
+                placeholder={`Buscar exercícios por título...`}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim()) {
+                    setIsSearching(true);
+                    setPage(1);
+                  } else {
+                    setIsSearching(false);
+                    setPage(1);
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery && (
+                    <InputAdornment position="end">
+                      <Button
+                        onClick={handleClearSearch}
+                        sx={{ minWidth: "auto", p: 1 }}
+                      >
+                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+                      </Button>
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    color: "white",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.3)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.5)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                    },
+                  },
+                }}
+                sx={{
+                  "& .MuiInputBase-input::placeholder": {
+                    color: "rgba(255, 255, 255, 0.5)",
+                    opacity: 1,
+                  },
+                }}
+              />
+            </Box>
+
             {Array.isArray(exercises.content) &&
             exercises.content.length > 0 ? (
               <>
@@ -751,7 +1072,13 @@ function Dashboard() {
                                 disabled={exercise.verified}
                                 onClick={() => {
                                   verifyExercise(exercise.id)
-                                    .then(() => getExercises())
+                                    .then(() => {
+                                      if (isSearching && searchQuery.trim()) {
+                                        return searchExercises(searchQuery);
+                                      } else {
+                                        return getExercises();
+                                      }
+                                    })
                                     .then((data) => {
                                       if (data) setExercises(data);
                                     });

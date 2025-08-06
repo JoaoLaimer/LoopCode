@@ -322,4 +322,29 @@ public class UserService {
                 ));
         }
 
+        @Transactional(readOnly = true)
+        public Page<BanRecordResponseDto> searchBanRecords(String query, int page, int size) {
+                PageRequest pr = PageRequest.of(page, size);
+                
+                Specification<BanRecord> spec = (root, criteriaQuery, cb) -> {
+                        String like = "%" + query.toLowerCase() + "%";
+                        return cb.or(
+                                cb.like(cb.lower(root.get("bannedUser").get("username")), like),
+                                cb.like(cb.lower(root.get("bannedUser").get("email")), like)
+                        );
+                };
+                
+                return banRecordRepository.findAll(spec, pr)
+                        .map(ban -> new BanRecordResponseDto(
+                                ban.getId(),
+                                ban.getBannedUser().getUsername(),
+                                ban.getBannedUser().getEmail(),
+                                ban.getAdminUser().getUsername(),
+                                ban.getBanReason(),
+                                ban.getBanDate(),
+                                ban.getUnbanDate(),
+                                ban.isActive()
+                        ));
+        }
+
 }
