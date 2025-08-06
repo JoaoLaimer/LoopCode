@@ -13,7 +13,8 @@ import {
   ListItemIcon,
   Pagination,
   CircularProgress,
-  Chip
+  Chip,
+  Divider
 } from '@mui/material';
 import CodeIcon from '@mui/icons-material/Code';
 import AddIcon from '@mui/icons-material/Add';
@@ -27,31 +28,49 @@ export default function CreateList() {
   const [lista, setLista] = useState([]);
   const [search, setSearch] = useState('');
   const [listaTitulo, setListaTitulo] = useState('');
+  const [listaDescricao, setListaDescricao] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [exercises, setExercises] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    const token = localStorage.getItem('token');
-    const { username } = useAuth();
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  const token = localStorage.getItem('token');
+  const { username } = useAuth();
 
   const getExercises = async (page = 0) => {
     try {
-      const response = await fetch(`${baseUrl}/exercises?page=${page}&size=9`, {
+      const base = debouncedSearch.trim()
+        ? `${baseUrl}/exercises/search?q=${encodeURIComponent(debouncedSearch.trim())}`
+        : `${baseUrl}/exercises`;
+
+      const url = new URL(base);
+      url.searchParams.append("sortBy", "votes");
+      url.searchParams.append("order", "desc");
+      url.searchParams.append("page", page);
+      url.searchParams.append("size", 9);
+
+      const response = await fetch(url.toString(), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
       if (!response.ok) {
-        console.error('Failed to fetch exercises:', response);
+        console.error("Erro ao buscar exercícios:", response);
+        return null;
       }
+
       return response.json();
     } catch (err) {
-      console.error(err);
+      console.error("Erro na requisição:", err);
       return null;
     }
   };
+
+
+
 
   const fetchExercises = async (page = 0) => {
     setLoading(true);
@@ -70,7 +89,22 @@ export default function CreateList() {
 
   useEffect(() => {
     fetchExercises(currentPage);
-  }, [currentPage]);
+  }, [currentPage, debouncedSearch]);
+
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search); // atualiza com atraso
+      setCurrentPage(0); // resetar para a primeira página
+    }, 500); // delay em ms
+
+    return () => {
+      clearTimeout(handler); // limpa o timeout anterior se o usuário ainda estiver digitando
+    };
+  }, [search]);
+
+
+
 
   const handleAdd = (item) => {
     if (!lista.find((i) => i.id === item.id)) {
@@ -87,7 +121,12 @@ export default function CreateList() {
       alert('Por favor, insira um título para a lista');
       return;
     }
-    
+
+    if (!listaDescricao.trim()) {
+      alert('Por favor, insira uma descrição para a lista');
+      return;
+    }
+
     if (lista.length === 0) {
       alert('Por favor, adicione pelo menos um exercício à lista');
       return;
@@ -95,9 +134,10 @@ export default function CreateList() {
 
     try {
       setLoading(true);
-      
+
       const body = {
         name: listaTitulo,
+        description: listaDescricao,
         exerciseIds: lista.map(item => item.id)
       };
 
@@ -126,22 +166,17 @@ export default function CreateList() {
     }
   };
 
-  const filteredExercises = exercises.filter((item) =>
-    item.title?.toLowerCase().includes(search.toLowerCase()) ||
-    item.programmingLanguage?.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
-    <Box sx={{ 
-      width: '100%', 
-      height: '88vh', 
+    <Box sx={{
+      width: '100%',
+      height: '88vh',
       display: 'flex',
       overflow: 'hidden',
       marginTop: 6,
     }}>
-     {/* Painel da Lista */}
+      {/* Painel da Lista */}
       <Box sx={{ flex: 1 }}>
-        <Paper
+        <Box
           sx={{
             bgcolor: 'card.primary',
             borderRadius: 2,
@@ -164,9 +199,29 @@ export default function CreateList() {
             inputProps={{ style: { textAlign: 'center' } }}
             placeholder="Título da Lista"
           />
+          <TextField
+            fullWidth
+            value={listaDescricao}
+            onChange={(e) => setListaDescricao(e.target.value)}
+            variant="outlined"
+            multiline
+            minRows={3}
+            placeholder="Descrição da Lista"
+            sx={{
+              mt: 2,
+              borderRadius: 1,
+              "& .MuiInputBase-root": { color: '#fff' },
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: '#ccc'
+              }
+            }}
+            InputLabelProps={{ shrink: true }}
+          />
+
           <List>
             {lista.map((item) => (
               <ListItem
+                sx={{ margin: 0, paddingRight: 0, paddingLeft: 0, paddingTop: 1, paddingBottom: 1 }}
                 key={item.id}
                 secondaryAction={
                   <IconButton
@@ -197,19 +252,19 @@ export default function CreateList() {
           <Box textAlign="center" mt="auto">
             <Button
               variant="contained"
-              sx={{ bgcolor: '#6c63ff', textTransform: 'none' }}
+              sx={{ bgcolor: 'primary', textTransform: 'none' }}
               onClick={handleCreateList}
             >
               Criar Lista
             </Button>
           </Box>
-        </Paper>
+        </Box>
       </Box>
 
 
       {/* Painel de Atividades */}
       <Box sx={{ flex: 1 }}>
-        <Paper sx={{ bgcolor: 'card.primary', borderRadius: 2, p: 2, height: '100%' }}>
+        <Box sx={{ bgcolor: 'card.primary', borderRadius: 2, p: 2, height: '100%' }}>
           <Box display="flex" alignItems="center" >
             <SearchIcon sx={{ mr: 1, color: '#ccc' }} />
             <TextField
@@ -224,7 +279,7 @@ export default function CreateList() {
               }}
             />
           </Box>
-          
+
           {loading ? (
             <Box display="flex" justifyContent="center" mt={4}>
               <CircularProgress sx={{ color: '#fff' }} />
@@ -232,7 +287,7 @@ export default function CreateList() {
           ) : (
             <>
               <List>
-                {filteredExercises.map((item) => (
+                {exercises.map((item) => (
                   <ListItem
                     key={item.id}
                     secondaryAction={
@@ -248,15 +303,15 @@ export default function CreateList() {
                     <ListItemIcon sx={{ color: '#ccc' }}>
                       <CodeIcon />
                     </ListItemIcon>
-                    <ListItemText 
-                      primary={item.title} 
+                    <ListItemText
+                      primary={item.title}
                       secondary={item.language.name}
                     />
                     <Chip label={item.difficulty} color="primary" />
                   </ListItem>
                 ))}
               </List>
-              
+
               {totalPages > 1 && (
                 <Box display="flex" justifyContent="center" mt={4}>
                   <Pagination
@@ -280,7 +335,7 @@ export default function CreateList() {
               )}
             </>
           )}
-        </Paper>
+        </Box>
       </Box>
     </Box>
   );

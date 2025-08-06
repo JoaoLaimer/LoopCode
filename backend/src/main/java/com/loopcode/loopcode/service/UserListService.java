@@ -41,17 +41,16 @@ public class UserListService {
         @Transactional
         public UserListDto createList(String username, CreateUserListDto dto) {
                 User owner = userRepository.findByUsername(username)
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Usuário não encontrado: " + username));
+                                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + username));
 
                 UserList list = new UserList();
                 list.setName(dto.name());
                 list.setOwner(owner);
+                list.setDescription(dto.description());
 
                 dto.exerciseIds().forEach(id -> {
                         Exercise ex = exerciseRepository.findById(id)
-                                        .orElseThrow(() -> new ResourceNotFoundException(
-                                                        "Exercício não encontrado: " + id));
+                                        .orElseThrow(() -> new ResourceNotFoundException("Exercício não encontrado: " + id));
                         list.getExercises().add(ex);
                 });
 
@@ -77,6 +76,8 @@ public class UserListService {
                 return new UserListDto(
                                 list.getId(),
                                 list.getName(),
+                                list.getDescription(),
+                                list.getCreatedAt(),
                                 list.getOwner().getUsername(),
                                 fullExercises);
         }
@@ -95,6 +96,8 @@ public class UserListService {
                                         return new UserListDto(
                                                         list.getId(),
                                                         list.getName(),
+                                                        list.getDescription(),
+                                                        list.getCreatedAt(),
                                                         ownerUsername,
                                                         fullExercises);
                                 });
@@ -108,6 +111,8 @@ public class UserListService {
                 return new UserListDto(
                                 list.getId(),
                                 list.getName(),
+                                list.getDescription(),
+                                list.getCreatedAt(),
                                 list.getOwner().getUsername(),
                                 fullExercises);
         }

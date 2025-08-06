@@ -7,6 +7,10 @@ import {
   Stack,
   Chip,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import HomeExerciseItem from "@/components/HomeExerciseItem";
 import HomeListItem from "@/components/HomeListItem";
@@ -16,6 +20,8 @@ const filtros = ["Exercícios", "Listas"];
 
 export default function HomePage() {
   const [filtro, setFiltro] = useState("Exercícios");
+  const [difficulty, setDifficulty] = useState(null);
+  const [orderBy, setOrderBy] = useState("votes");
 
   const [voteStatusMap, setVoteStatusMap] = useState({});
   const [exercises, setExercises] = useState([]);
@@ -38,10 +44,19 @@ export default function HomePage() {
 
   const getExercises = async (page = 0) => {
     try {
-      const response = await fetch(`${baseUrl}/exercises?page=${page}&sortBy=votes&order=desc`, {
+      const url = new URL(`${baseUrl}/exercises`);
+      url.searchParams.append("page", page);
+      url.searchParams.append("sortBy", orderBy);
+      url.searchParams.append("order", "desc");
+      if (difficulty) {
+        url.searchParams.append("difficulty", difficulty.toUpperCase());
+      }
+
+      const response = await fetch(url.toString(), {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (!response.ok) throw new Error("Erro ao buscar exercícios");
       return response.json();
     } catch (err) {
@@ -49,6 +64,8 @@ export default function HomePage() {
       return null;
     }
   };
+
+
 
   const getLists = async (page = 0) => {
     try {
@@ -135,8 +152,18 @@ export default function HomePage() {
     currentListPage,
     totalListPages,
     loadMoreExercises,
-    loadMoreLists,
+    loadMoreLists
   ]);
+
+  useEffect(() => {
+    if (filtro === "Exercícios") {
+      setExercises([]);
+      setVoteStatusMap({});
+      setCurrentPage(0);
+      setTotalPages(1);
+    }
+  }, [difficulty, orderBy]); // ← adicione orderBy aqui
+
 
   const handleVote = async (exerciseId, type) => {
     try {
@@ -219,7 +246,7 @@ export default function HomePage() {
 
   return (
     <Box className="pt-5">
-      <Stack direction="row" spacing={2} mb={3} pl={2} flexWrap="wrap">
+      <Stack direction="row" spacing={2} mb={1} flexWrap="wrap">
         {filtros.map((item) => (
           <Chip
             key={item}
@@ -228,7 +255,7 @@ export default function HomePage() {
             color={filtro === item ? "primary" : "default"}
             onClick={() => handleFiltroClick(item)}
             sx={{
-              bgcolor: filtro === item ? "primary.main" : "card.dark",
+              bgcolor: filtro === item ? "primary.main" : "card.primary",
               color: "white",
             }}
           />
@@ -237,7 +264,92 @@ export default function HomePage() {
 
       {filtro === "Exercícios" && (
         <>
-          <Stack spacing={2} sx={{ borderRadius: "5px", padding: 2 }}>
+          {/* Filtros */}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            {/* Chips de dificuldade */}
+            <Stack direction="row" spacing={1}>
+              <Chip
+                label="Todos"
+                clickable
+                color={difficulty === null ? "primary" : "default"}
+                onClick={() => {
+                  setDifficulty(null);
+                  setExercises([]);
+                  setCurrentPage(0);
+                  setTotalPages(1);
+                }}
+                sx={{
+                  bgcolor: difficulty === null ? "primary.main" : "card.primary",
+                  color: "white",
+                }}
+              />
+              {["Easy", "Medium", "Hard"].map((level) => (
+                <Chip
+                  key={level}
+                  label={level}
+                  clickable
+                  color={difficulty === level ? "primary" : "default"}
+                  onClick={() => {
+                    setDifficulty(level);
+                    setExercises([]);
+                    setCurrentPage(0);
+                    setTotalPages(1);
+                  }}
+                  sx={{
+                    bgcolor: difficulty === level ? "primary.main" : "card.primary",
+                    color: "white",
+                  }}
+                />
+              ))}
+            </Stack>
+
+            {/* Dropdown de ordenação */}
+            <FormControl variant="standard" size="small" sx={{ minWidth: 160 }}>
+              <InputLabel id="orderBy-label" sx={{ color: "gray" }}>
+                Ordenar por
+              </InputLabel>
+              <Select
+                labelId="orderBy-label"
+                value={orderBy}
+                label="Ordenar por"
+                onChange={(e) => {
+                  setOrderBy(e.target.value);
+                  setExercises([]);
+                  setCurrentPage(0);
+                  setTotalPages(1);
+                }}
+                sx={{
+
+                  color: "gray",
+                  ".MuiOutlinedInput-notchedOutline": {
+                    borderColor: "gray",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "primary.light",
+                  },
+                }}
+              >
+                <MenuItem value="votes">Mais votados</MenuItem>
+                <MenuItem value="createdAt">Mais recentes</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
+
+
+          {/* Lista de exercícios */}
+          <Stack spacing={1}>
+            {exercises.length === 0 && !loading && (
+              <Typography color="gray">Nenhum exercício encontrado.</Typography>
+            )}
+
             {exercises.map((exercise) => (
               <HomeExerciseItem
                 key={exercise.id}
@@ -247,16 +359,20 @@ export default function HomePage() {
               />
             ))}
           </Stack>
+
+          {/* Loading e sentinel para scroll infinito */}
           <Box ref={sentinelRef} display="flex" justifyContent="center" mt={4}>
             {loading && <CircularProgress color="primary" />}
           </Box>
         </>
       )}
 
+
+
       {filtro === "Listas" && (
         <>
-          <Box sx={{ mt: 2, px: 2 }}>
-            <Stack spacing={2}>
+          <Box>
+            <Stack spacing={1} mt={2}>
               {lists.length === 0 && !loadingLists && (
                 <Typography color="gray">Nenhuma lista encontrada.</Typography>
               )}

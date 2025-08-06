@@ -50,7 +50,7 @@ public class UserListController {
     @GetMapping("/lists")
     @Operation(summary = "Retorna todas as listas de todos os usuários (paginado)")
     public ResponseEntity<Page<UserListDto>> allPublicLists(
-            @PageableDefault(size = 10) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<UserListDto> lists = listService.getAllLists(pageable);
         return ResponseEntity.ok(lists);
     }

@@ -7,10 +7,15 @@ import {
   IconButton,
   Chip,
   Stack,
+
 } from "@mui/material";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
+import VerifiedUserRounded from "@mui/icons-material/VerifiedUserRounded";
+import GppBadRounded from "@mui/icons-material/GppBadRounded";
+import CodeIcon from '@mui/icons-material/Code';
+import CalculateIcon from '@mui/icons-material/Calculate';
 import { useRouter } from "next/navigation";
 
 export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
@@ -18,7 +23,7 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
 
   const showFireIcon = exercise.voteCount >= 1;
 
-  const truncateDescription = (desc, limit = 150) => {
+  const truncateDescription = (desc, limit = 100) => {
     if (!desc) return "";
     return desc.length > limit ? desc.slice(0, limit).trim() + "..." : desc;
   };
@@ -32,17 +37,17 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
         position: "relative",
         bgcolor: "card.primary",
         p: 2,
-        borderRadius: 5,
-        boxShadow: 3,
+        borderRadius: 2,
         width: "100%",
-        height: 130,
+        height: 110,
         cursor: "pointer",
-        transition: "all 0.2s ease-in-out",
+        transition: "all 0.1s ease-in-out",
         overflow: "hidden",
         "&:hover": {
           boxShadow: 6,
           bgcolor: "primary.dark",
         },
+        border: "1px solid rgba(255, 255, 255, 0.1)",
       }}
     >
       {/* Container título e chips separados */}
@@ -58,34 +63,49 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
         <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
           <Chip
             size="small"
-            label={exercise ? exercise.difficulty : "Carregando..."}
+            icon={<CalculateIcon />}
+            label={
+              exercise
+                ? exercise.difficulty.charAt(0) + exercise.difficulty.slice(1).toLowerCase()
+                : "Carregando..."
+            }
             sx={{
-              bgcolor: `difficulty.${exercise ? exercise.difficulty?.toLowerCase() : "Carregando..."}`,
+              bgcolor: 'primary.main',
               color: "white",
-              height: 18,
-              fontSize: "0.60rem",
-              fontWeight: "bold",
-              paddingLeft: 0.2,
-              paddingRight: 0.2,
+              fontSize: "0.75rem",     
+              paddingLeft: 0.3,
+              paddingRight: 0.3,
             }}
           />
           <Chip
             size="small"
+            icon={<CodeIcon />}
             label={exercise ? exercise.language.name : "Carregando..."}
             sx={{
-              bgcolor: "#8B5CF6",
+              bgcolor: "primary.main",
               color: "white",
-              height: 18,
-              fontSize: "0.60rem",
-              fontWeight: "bold",
-              paddingLeft: 0.2,
-              paddingRight: 0.2,
+              fontSize: "0.75rem",
+              paddingLeft: 0.3,
+              paddingRight: 0.3,
+            }}
+          />
+
+          <Chip
+            size="small"
+            icon={exercise.verified ? <VerifiedUserRounded /> : <GppBadRounded />}
+            label={exercise.verified ? "Verificado" : "Não verificado"}
+            sx={{
+              bgcolor: exercise.verified ? "success.main" : "error.main",
+              fontSize: "0.75rem",
+              paddingLeft: 0.3,
+              paddingRight: 0.3,
+              marginRight: 0,
             }}
           />
         </Stack>
       </Box>
 
-      <Typography variant="body2" color="gray" mb={1} sx={{ mt: 0.5 }}>
+      <Typography variant="body2" color="gray">
         Criado por{" "}
         <a
           href={`/users/${exercise.createdBy.username}`}
@@ -96,7 +116,7 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
         </a>
       </Typography>
 
-      <Typography variant="body2" color="gray" sx={{ pr: 18 }}>
+      <Typography variant="body2" color="gray" sx={{ pr: 18, mt: 0.5 }}>
         {truncateDescription(exercise.description)}
       </Typography>
 
@@ -120,12 +140,13 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
           sx={{
             display: "flex",
             alignItems: "center",
-            backgroundColor: "card.secondary",
+            backgroundColor: "card.primary",
             borderRadius: "25px",
             px: 1,
             py: 0.5,
             gap: 1,
-            boxShadow: 2,
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            height: 35,
           }}
         >
           <IconButton

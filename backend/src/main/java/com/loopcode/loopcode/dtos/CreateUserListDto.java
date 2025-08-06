@@ -7,5 +7,6 @@ import java.util.UUID;
 
 public record CreateUserListDto(
         @NotBlank String name,
+        @NotBlank String description,
         @NotEmpty List<UUID> exerciseIds) {
 }

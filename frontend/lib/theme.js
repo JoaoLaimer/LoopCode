@@ -5,20 +5,13 @@ const theme = createTheme({
   palette: {
     mode: "dark",
     primary: {
-      main: "#673AB7", // destaque 1
-      contrast: "#1f081eff", // contraste main
-    },
-    secondary: {
-      main: "#673AB7", // destaque 2
+      main: "#673AB7", // Destaque (roxo)
     },
     background: {
-      default: "#121212", // layer 1
-      paper: "#161616", // layer 2
+      default: "#121212", // Background
     },
     card: {
-      primary: "#1B1C30",
-      secondary: "#303042ff", // divider
-      dark: "#0B0C1C",
+      primary: "#1A1A1A", // Cor primária do card
     },
     difficulty: {
       easy: "#4CAF50", // verde

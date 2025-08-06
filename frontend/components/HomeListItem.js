@@ -13,11 +13,13 @@ export default function HomeListItem({ list }) {
             sx={{
                 bgcolor: "card.primary",
                 p: 2,
-                borderRadius: 3,
+                borderRadius: 2,
                 cursor: "pointer",
                 "&:hover": {
                     bgcolor: "primary.dark",
                 },
+                height: 110,
+                border: "1px solid rgba(255, 255, 255, 0.1)",
             }}
             onClick={() => router.push(`/lists/${list.id}`)}
             role="button"
@@ -31,7 +33,7 @@ export default function HomeListItem({ list }) {
                 {list.name}
             </Typography>
 
-            <Typography variant="body2" color="gray" mb={1} sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="gray" mb={1} >
                     Criado por{" "}
                     <a
                       href={`/users/${list.ownerUsername}`}
@@ -43,8 +45,8 @@ export default function HomeListItem({ list }) {
                   </Typography>
 
             <Typography variant="body2" color="gray">
-                {list.exercises.length} exercício(s) –{" "}
-                Avaliação: {list.exercises.reduce((acc, ex) => acc + ex.voteCount, 0)}
+                {list.exercises.length} exercício(s) |{" "}
+                Avaliação dos exercícios: {list.exercises.reduce((acc, ex) => acc + ex.voteCount, 0)}
             </Typography>
 
         </Box>

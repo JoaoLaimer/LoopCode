@@ -169,7 +169,7 @@ export default function CreateExercisePage() {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        minHeight: "90vh",
         bgcolor: "background.default",
         display: "flex",
         justifyContent: "center",
@@ -268,7 +268,7 @@ export default function CreateExercisePage() {
                 description.trim() === "" ||
                 difficulty.trim() === ""
               }
-              sx={{ bgcolor: "#6D6AF2", ":hover": { bgcolor: "#5755d9" } }}
+              sx={{ bgcolor: "primary", ":hover": { bgcolor: "#5755d9" } }}
             >
               Próximo
             </Button>
@@ -401,14 +401,14 @@ export default function CreateExercisePage() {
               <Button
                 variant="contained"
                 onClick={handleBack}
-                sx={{ bgcolor: "#6D6AF2" }}
+                sx={{ bgcolor: "primary" }}
               >
                 Voltar
               </Button>
 
               <Button
                 variant="contained"
-                sx={{ bgcolor: "#6D6AF2" }}
+                sx={{ bgcolor: "primary" }}
                 onClick={async () => {
                   if (testCases.length === 0) {
                     alert("Adicione pelo menos um caso de teste.");

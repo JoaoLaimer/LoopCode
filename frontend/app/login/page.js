@@ -128,7 +128,7 @@ export default function LoginPage() {
                 />
               </FormControl>
 
-              <Button type="submit" variant="contained" color="secondary" fullWidth>
+              <Button type="submit" variant="contained" color="primary" fullWidth>
                 Entrar
               </Button>
 

@@ -28,7 +28,7 @@ export default function ExercicioItem({
           sx={{
             display: "flex",
             alignItems: "center",
-            backgroundColor: "card.secondary",
+            backgroundColor: "card.primary",
             borderRadius: "25px",
             px: 0.4,
             py: 0.2,
@@ -82,7 +82,7 @@ export default function ExercicioItem({
           sx={{
             display: "flex",
             alignItems: "center",
-            backgroundColor: "card.secondary",
+            backgroundColor: "card.primary",
             borderRadius: "25px",
             px: 0.4,
             py: 0.2,

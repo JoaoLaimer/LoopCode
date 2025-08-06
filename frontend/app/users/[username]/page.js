@@ -185,7 +185,7 @@ export default function PerfilUsuario({ params }) {
 
                 <Box className="w-full grid grid-cols-2 gap-10">
                     {/* Exercícios */}
-                    <Box className="p-5 " sx={{bgcolor: "card.primary", borderRadius: 2,}}>
+                    <Box className="p-5 " sx={{bgcolor: "card.primary", borderRadius: 2, border: "1px solid rgba(255, 255, 255, 0.1)",}}>
                         <Typography variant="h5" className="pb-2">
                             Exercícios
                         </Typography>
@@ -217,7 +217,7 @@ export default function PerfilUsuario({ params }) {
                     </Box>
 
                     {/* Listas */}
-                    <Box  className="p-5" sx={{bgcolor: "card.primary", borderRadius: 2,}}>
+                    <Box  className="p-5" sx={{bgcolor: "card.primary", borderRadius: 2, border: "1px solid rgba(255, 255, 255, 0.1)",}}>
                         <Typography variant="h5" className="pb-2 text-white">
                             Listas
                         </Typography>

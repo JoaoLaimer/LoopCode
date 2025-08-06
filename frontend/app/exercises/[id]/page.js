@@ -266,11 +266,11 @@ export default function ExercisePage({ params }) {
         <Box
           component="pre"
           sx={{
-            bgcolor: "#212237",
             p: 2,
             borderRadius: 2,
             fontSize: "0.875rem",
             whiteSpace: "pre-wrap",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
           }}
         >
           {`${testCases
@@ -412,7 +412,7 @@ export default function ExercisePage({ params }) {
           <Box
             component="pre"
             sx={{
-              bgcolor: "#0f172a",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
               p: 1,
               borderRadius: 1,
               color: "white",
@@ -429,10 +429,11 @@ export default function ExercisePage({ params }) {
             <Box
               component="pre"
               sx={{
-                bgcolor: "#0f172a",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
                 p: 1,
                 borderRadius: 1,
                 color: "white",
+                height: "40px"
               }}
             >
               {resultado}
