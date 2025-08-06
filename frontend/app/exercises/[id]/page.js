@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
-import { Box, Typography, Button, Chip } from "@mui/material";
+import { Box, Typography, Button, Chip, Snackbar, Alert } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import CodeIcon from "@mui/icons-material/Code";
 import CheckIcon from "@mui/icons-material/Check";
@@ -22,6 +22,7 @@ export default function ExercisePage({ params }) {
   const [caseResults, setCaseResults] = useState([]);
   const [caseStates, setCaseStates] = useState([]);
   const [exercise, setExercise] = useState(null);
+  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
 
   const getExercise = async (id) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -142,6 +143,11 @@ export default function ExercisePage({ params }) {
       });
 
       const allPassed = data.output.every((result) => result.passed);
+
+      if (allPassed) {
+        setShowSuccessSnackbar(true);
+      }
+
       const dailyChallenge = await fetch(`${baseUrl}/daily-challenge`, {
         method: "GET",
         headers: {
@@ -433,7 +439,7 @@ export default function ExercisePage({ params }) {
                 p: 1,
                 borderRadius: 1,
                 color: "white",
-                height: "40px"
+                height: "40px",
               }}
             >
               {resultado}
@@ -441,6 +447,26 @@ export default function ExercisePage({ params }) {
           </Box>
         </Box>
       </Box>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={showSuccessSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setShowSuccessSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setShowSuccessSnackbar(false)}
+          severity="success"
+          sx={{
+            width: "100%",
+            fontSize: "1.1rem",
+            fontWeight: "bold",
+          }}
+        >
+          Você passou em todos os casos de teste!
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
