@@ -7,7 +7,9 @@ import com.loopcode.loopcode.domain.user.UserList;
 import com.loopcode.loopcode.domain.exercise.Exercise;
 import com.loopcode.loopcode.domain.exercise.Vote;
 import com.loopcode.loopcode.dtos.BanRequestDto;
+import com.loopcode.loopcode.dtos.BanRecordResponseDto;
 import com.loopcode.loopcode.dtos.TimeoutRequestDto;
+import com.loopcode.loopcode.dtos.TimeoutRecordResponseDto;
 import com.loopcode.loopcode.dtos.UserListDto;
 import com.loopcode.loopcode.dtos.UserResponseDto;
 import com.loopcode.loopcode.exceptions.ResourceNotFoundException;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -220,6 +223,39 @@ public class UserService {
         }
 
         @Transactional(readOnly = true)
+        public Page<UserResponseDto> getUsersByRole(int page, int size, String role) {
+                PageRequest pr = PageRequest.of(page, size);
+                
+                if (role == null || role.trim().isEmpty()) {
+                        // Return all users if no role filter is specified, excluding banned users
+                        Page<User> users = userRepository.findAll(pr);
+                        List<UserResponseDto> filteredUsers = users.getContent().stream()
+                                .filter(u -> !isUserBanned(u.getUsername()))
+                                .map(u -> new UserResponseDto(u.getUsername(), u.getEmail(), u.getRole().name(), u.getDailyStreak()))
+                                .collect(Collectors.toList());
+                        return new PageImpl<>(filteredUsers, pr, users.getTotalElements());
+                }
+                
+                try {
+                        Role roleEnum = Role.valueOf(role.toUpperCase());
+                        Page<User> users = userRepository.findByRole(roleEnum, pr);
+                        List<UserResponseDto> filteredUsers = users.getContent().stream()
+                                .filter(u -> !isUserBanned(u.getUsername()))
+                                .map(u -> new UserResponseDto(u.getUsername(), u.getEmail(), u.getRole().name(), u.getDailyStreak()))
+                                .collect(Collectors.toList());
+                        return new PageImpl<>(filteredUsers, pr, users.getTotalElements());
+                } catch (IllegalArgumentException e) {
+                        throw new IllegalArgumentException("Invalid role: " + role + ". Valid roles are: USER, MOD, ADMIN");
+                }
+        }
+
+        private boolean isUserBanned(String username) {
+                User user = userRepository.findByUsername(username).orElse(null);
+                if (user == null) return false;
+                return banRecordRepository.findByBannedUserAndActiveTrue(user).isPresent();
+        }
+
+        @Transactional(readOnly = true)
         public Page<UserResponseDto> searchUsers(
                         String q, int page, int size) {
 
@@ -233,6 +269,63 @@ public class UserService {
                 return userRepository.findAll(spec, pr)
                                 .map(u -> new UserResponseDto(
                                                 u.getUsername(), u.getEmail(), u.getRole().name(), u.getDailyStreak()));
+        }
+
+        @Transactional(readOnly = true)
+        public Page<BanRecordResponseDto> getBanRecords(int page, int size, Boolean active) {
+                PageRequest pr = PageRequest.of(page, size);
+                
+                Page<BanRecord> banRecords;
+                if (active == null) {
+                        // Return all ban records, ordered by ban date (most recent first)
+                        banRecords = banRecordRepository.findAllByOrderByBanDateDesc(pr);
+                } else if (active) {
+                        // Return only active bans
+                        banRecords = banRecordRepository.findByActiveTrue(pr);
+                } else {
+                        // Return only inactive bans (unbanned users)
+                        banRecords = banRecordRepository.findByActiveFalse(pr);
+                }
+                
+                return banRecords.map(ban -> new BanRecordResponseDto(
+                        ban.getId(),
+                        ban.getBannedUser().getUsername(),
+                        ban.getBannedUser().getEmail(),
+                        ban.getAdminUser().getUsername(),
+                        ban.getBanReason(),
+                        ban.getBanDate(),
+                        ban.getUnbanDate(),
+                        ban.isActive()
+                ));
+        }
+
+        @Transactional(readOnly = true)
+        public Page<TimeoutRecordResponseDto> getTimeoutRecords(int page, int size, Boolean active) {
+                PageRequest pr = PageRequest.of(page, size);
+                
+                Page<TimeoutRecord> timeoutRecords;
+                if (active == null) {
+                        // Return all timeout records, ordered by timeout date (most recent first)
+                        timeoutRecords = timeoutRecordRepository.findAllByOrderByTimeoutDateDesc(pr);
+                } else if (active) {
+                        // Return only active timeouts
+                        timeoutRecords = timeoutRecordRepository.findByActiveTrue(pr);
+                } else {
+                        // Return only inactive timeouts
+                        timeoutRecords = timeoutRecordRepository.findByActiveFalse(pr);
+                }
+                
+                return timeoutRecords.map(timeout -> new TimeoutRecordResponseDto(
+                        timeout.getId(),
+                        timeout.getTimedOutUser().getUsername(),
+                        timeout.getTimedOutUser().getEmail(),
+                        timeout.getAdminUser().getUsername(),
+                        timeout.getReason(),
+                        timeout.getTimeoutDate(),
+                        timeout.getDurationMinutes(),
+                        timeout.getTimeoutEndDate(),
+                        timeout.isActive()
+                ));
         }
 
 }

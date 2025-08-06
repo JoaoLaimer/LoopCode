@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Box, Typography, Card, CardContent, Button } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VerifiedUserRounded from "@mui/icons-material/VerifiedUserRounded";
@@ -11,6 +11,20 @@ import AuthGuard from "../auth-guard";
 function Dashboard() {
   const [selectedSection, setSelectedSection] = useState("exercicios");
   const [exercises, setExercises] = useState({
+    content: [],
+    totalPages: 1,
+    number: 0,
+    first: true,
+    last: true,
+  });
+  const [users, setUsers] = useState({
+    content: [],
+    totalPages: 1,
+    number: 0,
+    first: true,
+    last: true,
+  });
+  const [bans, setBans] = useState({
     content: [],
     totalPages: 1,
     number: 0,
@@ -40,7 +54,35 @@ function Dashboard() {
     }
   };
 
-  const getExercises = async () => {
+  const getUsers = useCallback(
+    async (role) => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      try {
+        const response = await fetch(
+          `${baseUrl}/users?page=${page - 1}&size=5&role=${role}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log(`Fetched ${role} users:`, data);
+        return data;
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    },
+    [page]
+  );
+
+  const getExercises = useCallback(async () => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
       const response = await fetch(
@@ -63,11 +105,36 @@ function Dashboard() {
       console.error(err);
       return null;
     }
-  };
+  }, [page]);
+
+  const getBans = useCallback(async () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const response = await fetch(
+        `${baseUrl}/users/bans?page=${page - 1}&size=5&active=true`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Fetched bans:", data);
+      return data;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  }, [page]);
 
   useEffect(() => {
-    if (selectedSection === "exercicios") {
-      const fetchData = async () => {
+    const fetchData = async () => {
+      if (selectedSection === "exercicios") {
         const data = await getExercises();
         if (data) {
           setExercises(data);
@@ -81,48 +148,466 @@ function Dashboard() {
           });
           console.error("Failed to fetch exercises");
         }
-      };
-      fetchData();
+      } else if (selectedSection === "usuarios") {
+        const data = await getUsers("USER");
+        if (data) {
+          setUsers(data);
+        } else {
+          setUsers({
+            content: [],
+            totalPages: 1,
+            number: 0,
+            first: true,
+            last: true,
+          });
+          console.error("Failed to fetch users");
+        }
+      } else if (selectedSection === "moderadores") {
+        const data = await getUsers("MOD");
+        if (data) {
+          setUsers(data);
+        } else {
+          setUsers({
+            content: [],
+            totalPages: 1,
+            number: 0,
+            first: true,
+            last: true,
+          });
+          console.error("Failed to fetch moderators");
+        }
+      } else if (selectedSection === "administradores") {
+        const data = await getUsers("ADMIN");
+        if (data) {
+          setUsers(data);
+        } else {
+          setUsers({
+            content: [],
+            totalPages: 1,
+            number: 0,
+            first: true,
+            last: true,
+          });
+          console.error("Failed to fetch administrators");
+        }
+      } else if (selectedSection === "bans") {
+        const data = await getBans();
+        if (data) {
+          setBans(data);
+        } else {
+          setBans({
+            content: [],
+            totalPages: 1,
+            number: 0,
+            first: true,
+            last: true,
+          });
+          console.error("Failed to fetch bans");
+        }
+      }
+    };
+    fetchData();
+  }, [page, selectedSection, getExercises, getUsers, getBans]);
+
+  const banUser = async (username) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    const reason = prompt("Please enter the ban reason:");
+    if (!reason) {
+      console.error("Ban reason is required");
+      return;
     }
-  }, [page, selectedSection]);
+
+    try {
+      const response = await fetch(`${baseUrl}/users/${username}/ban`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ banReason: reason }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Handle text response instead of JSON
+      const message = await response.text();
+      alert(message);
+      return message;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
+  const unbanUser = async (username) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    try {
+      const response = await fetch(`${baseUrl}/users/${username}/unban`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Handle text response instead of JSON
+      const message = await response.text();
+      alert(message);
+      return message;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
 
   const handleNextPage = () => {
-    if (!exercises.last) {
+    let currentData;
+    if (selectedSection === "exercicios") {
+      currentData = exercises;
+    } else if (selectedSection === "bans") {
+      currentData = bans;
+    } else {
+      currentData = users;
+    }
+
+    if (!currentData.last) {
       setPage((prevPage) => prevPage + 1);
     }
   };
 
   const handlePreviousPage = () => {
-    if (!exercises.first) {
+    let currentData;
+    if (selectedSection === "exercicios") {
+      currentData = exercises;
+    } else if (selectedSection === "bans") {
+      currentData = bans;
+    } else {
+      currentData = users;
+    }
+
+    if (!currentData.first) {
       setPage((prevPage) => prevPage - 1);
     }
+  };
+
+  const handleSectionChange = (section) => {
+    setSelectedSection(section);
+    setPage(1);
   };
 
   const renderContent = () => {
     switch (selectedSection) {
       case "usuarios":
-        return (
-          <Typography variant="h5" sx={{ color: "white" }}>
-            Lista de Usuários
-          </Typography>
-        );
       case "moderadores":
-        return (
-          <Typography variant="h5" sx={{ color: "white" }}>
-            Lista de Moderadores
-          </Typography>
-        );
       case "administradores":
         return (
-          <Typography variant="h5" sx={{ color: "white" }}>
-            Lista de Administradores
-          </Typography>
+          <Box
+            sx={{
+              height: "80vh",
+              overflow: "auto",
+              scrollbarGutter: "stable",
+              "&::-webkit-scrollbar": {
+                width: "8px",
+                backgroundColor: "#232136",
+                borderRadius: "8px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "#5b46d6",
+                borderRadius: "8px",
+              },
+              "&::-webkit-scrollbar-thumb:hover": {
+                backgroundColor: "#7c5fff",
+              },
+              scrollbarWidth: "thin",
+              scrollbarColor: "#5b46d6 #232136",
+            }}
+          >
+            <Typography variant="h5" sx={{ color: "white", mb: 3 }}>
+              Lista de{" "}
+              {selectedSection === "usuarios"
+                ? "Usuários"
+                : selectedSection === "moderadores"
+                ? "Moderadores"
+                : "Administradores"}
+            </Typography>
+            {Array.isArray(users.content) && users.content.length > 0 ? (
+              <>
+                {users.content.map((user) => (
+                  <Card
+                    key={user.username}
+                    sx={{ mb: 2, bgcolor: "#1e1e2e", color: "white" }}
+                  >
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                        }}
+                      >
+                        <Typography variant="h6">{user.username}</Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color:
+                              user.role === "ADMIN"
+                                ? "lightcoral"
+                                : user.role === "MOD"
+                                ? "lightgreen"
+                                : "lightblue",
+                          }}
+                        >
+                          {user.role}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" sx={{ mt: 1, color: "gray" }}>
+                        {user.email}
+                      </Typography>
+                      {selectedSection === "usuarios" && (
+                        <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            color="warning"
+                            size="small"
+                            onClick={() => {
+                              banUser(user.username)
+                                .then((result) => {
+                                  if (result) {
+                                    // Refresh the users list after successful ban
+                                    return getUsers("USER");
+                                  }
+                                })
+                                .then((data) => {
+                                  if (data) setUsers(data);
+                                });
+                            }}
+                          >
+                            Ban
+                          </Button>
+                          <Button
+                            variant="contained"
+                            color="info"
+                            size="small"
+                            onClick={() =>
+                              alert(`Timeout user ${user.username}`)
+                            }
+                          >
+                            Timeout
+                          </Button>
+                          <Button
+                            variant="contained"
+                            color="secondary"
+                            size="small"
+                            onClick={() =>
+                              alert(`Change role for ${user.username}`)
+                            }
+                          >
+                            Change Role
+                          </Button>
+                        </Box>
+                      )}
+                      {selectedSection === "moderadores" && (
+                        <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            color="secondary"
+                            size="small"
+                            onClick={() =>
+                              alert(`Change role for ${user.username}`)
+                            }
+                          >
+                            Change Role
+                          </Button>
+                        </Box>
+                      )}
+                      {selectedSection === "administradores" && (
+                        <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            color="secondary"
+                            size="small"
+                            onClick={() =>
+                              alert(`Change role for ${user.username}`)
+                            }
+                          >
+                            Change Role
+                          </Button>
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {/* Pagination Controls */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    mt: 4,
+                    gap: 2,
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    onClick={handlePreviousPage}
+                    disabled={users.first}
+                  >
+                    <ArrowBackIosNewIcon />
+                  </Button>
+                  <Typography>
+                    Página {users.number + 1} de {users.totalPages}
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={handleNextPage}
+                    disabled={users.last}
+                  >
+                    <ArrowForwardIosIcon />
+                  </Button>
+                </Box>
+              </>
+            ) : (
+              <Typography variant="body2">
+                Nenhum{" "}
+                {selectedSection === "usuarios"
+                  ? "usuário"
+                  : selectedSection === "moderadores"
+                  ? "moderador"
+                  : "administrador"}{" "}
+                encontrado.
+              </Typography>
+            )}
+          </Box>
         );
       case "bans":
         return (
-          <Typography variant="h5" sx={{ color: "white" }}>
-            Lista de Bans
-          </Typography>
+          <Box
+            sx={{
+              height: "80vh",
+              overflow: "auto",
+              scrollbarGutter: "stable",
+              "&::-webkit-scrollbar": {
+                width: "8px",
+                backgroundColor: "#232136",
+                borderRadius: "8px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "#5b46d6",
+                borderRadius: "8px",
+              },
+              "&::-webkit-scrollbar-thumb:hover": {
+                backgroundColor: "#7c5fff",
+              },
+              scrollbarWidth: "thin",
+              scrollbarColor: "#5b46d6 #232136",
+            }}
+          >
+            <Typography variant="h5" sx={{ color: "white", mb: 3 }}>
+              Lista de Bans Ativos
+            </Typography>
+            {Array.isArray(bans.content) && bans.content.length > 0 ? (
+              <>
+                {bans.content.map((ban) => (
+                  <Card
+                    key={ban.id}
+                    sx={{ mb: 2, bgcolor: "#1e1e2e", color: "white" }}
+                  >
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                        }}
+                      >
+                        <Typography variant="h6">
+                          {ban.bannedUsername}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "lightcoral",
+                          }}
+                        >
+                          BANIDO
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" sx={{ mt: 1, color: "gray" }}>
+                        {ban.bannedUserEmail}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        <strong>Razão:</strong> {ban.banReason}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        <strong>Banido por:</strong> {ban.adminUsername}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        <strong>Data do Ban:</strong>{" "}
+                        {new Date(ban.banDate).toLocaleString()}
+                      </Typography>
+                      <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="small"
+                          onClick={() => {
+                            unbanUser(ban.bannedUsername)
+                              .then(() => getBans())
+                              .then((data) => {
+                                if (data) setBans(data);
+                              });
+                          }}
+                        >
+                          Desbanir
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {/* Pagination Controls */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    mt: 4,
+                    gap: 2,
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    onClick={handlePreviousPage}
+                    disabled={bans.first}
+                  >
+                    <ArrowBackIosNewIcon />
+                  </Button>
+                  <Typography>
+                    Página {bans.number + 1} de {bans.totalPages}
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={handleNextPage}
+                    disabled={bans.last}
+                  >
+                    <ArrowForwardIosIcon />
+                  </Button>
+                </Box>
+              </>
+            ) : (
+              <Typography variant="body2">
+                Nenhum ban ativo encontrado.
+              </Typography>
+            )}
+          </Box>
         );
       case "timeouts":
         return (
@@ -293,7 +778,7 @@ function Dashboard() {
                   color: selectedSection === "usuarios" ? "card.main" : "white",
                 }}
                 fullWidth
-                onClick={() => setSelectedSection("usuarios")}
+                onClick={() => handleSectionChange("usuarios")}
               >
                 Usuários
               </Button>
@@ -304,7 +789,7 @@ function Dashboard() {
                     selectedSection === "moderadores" ? "card.main" : "white",
                 }}
                 fullWidth
-                onClick={() => setSelectedSection("moderadores")}
+                onClick={() => handleSectionChange("moderadores")}
               >
                 Moderadores
               </Button>
@@ -317,7 +802,7 @@ function Dashboard() {
                       : "white",
                 }}
                 fullWidth
-                onClick={() => setSelectedSection("administradores")}
+                onClick={() => handleSectionChange("administradores")}
               >
                 Administradores
               </Button>
@@ -344,7 +829,7 @@ function Dashboard() {
                 color: selectedSection === "bans" ? "card.main" : "white",
               }}
               fullWidth
-              onClick={() => setSelectedSection("bans")}
+              onClick={() => handleSectionChange("bans")}
             >
               Bans
             </Button>
@@ -354,7 +839,7 @@ function Dashboard() {
                 color: selectedSection === "timeouts" ? "card.main" : "white",
               }}
               fullWidth
-              onClick={() => setSelectedSection("timeouts")}
+              onClick={() => handleSectionChange("timeouts")}
             >
               Timeouts
             </Button>
@@ -380,7 +865,7 @@ function Dashboard() {
                 mb: 1,
               }}
               fullWidth
-              onClick={() => setSelectedSection("exercicios")}
+              onClick={() => handleSectionChange("exercicios")}
             >
               Exercícios
             </Button>

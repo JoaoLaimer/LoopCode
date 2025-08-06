@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.loopcode.loopcode.dtos.BanRequestDto;
+import com.loopcode.loopcode.dtos.BanRecordResponseDto;
 import com.loopcode.loopcode.dtos.TimeoutRequestDto;
+import com.loopcode.loopcode.dtos.TimeoutRecordResponseDto;
 import com.loopcode.loopcode.dtos.UserListDto;
 import com.loopcode.loopcode.dtos.UserResponseDto;
 import com.loopcode.loopcode.service.UserService;
@@ -97,12 +99,39 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<Page<UserResponseDto>> search(
-            @RequestParam String q,
-            @PageableDefault(size = 10) Pageable pageable) {
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MOD')")
+    @Operation(summary = "Buscar usuários por role com paginação", description = "Retorna usuários filtrados por role com suporte a paginação.")
+    public ResponseEntity<Page<UserResponseDto>> getUsers(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "role", required = false) String role) {
 
-        Page<UserResponseDto> result = userService.searchUsers(q, pageable.getPageNumber(), pageable.getPageSize());
+        Page<UserResponseDto> result = userService.getUsersByRole(page, size, role);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/bans")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MOD')")
+    @Operation(summary = "Buscar registros de banimento com paginação", description = "Retorna registros de banimento com suporte a paginação e filtros.")
+    public ResponseEntity<Page<BanRecordResponseDto>> getBanRecords(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "active", required = false) Boolean active) {
+
+        Page<BanRecordResponseDto> result = userService.getBanRecords(page, size, active);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/timeouts")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MOD')")
+    @Operation(summary = "Buscar registros de timeout com paginação", description = "Retorna registros de timeout com suporte a paginação e filtros.")
+    public ResponseEntity<Page<TimeoutRecordResponseDto>> getTimeoutRecords(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "active", required = false) Boolean active) {
+
+        Page<TimeoutRecordResponseDto> result = userService.getTimeoutRecords(page, size, active);
         return ResponseEntity.ok(result);
     }
 
