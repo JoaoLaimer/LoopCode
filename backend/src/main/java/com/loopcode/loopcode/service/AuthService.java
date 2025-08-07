@@ -1,6 +1,7 @@
 package com.loopcode.loopcode.service;
 
 import com.loopcode.loopcode.domain.ban.BanRecord;
+import com.loopcode.loopcode.domain.timeout.TimeoutRecord;
 import com.loopcode.loopcode.domain.user.User;
 import com.loopcode.loopcode.dtos.AuthResponseDto;
 import com.loopcode.loopcode.dtos.LoginRequestDto;
@@ -8,7 +9,9 @@ import com.loopcode.loopcode.dtos.RegisterRequestDto;
 import com.loopcode.loopcode.dtos.UserResponseDto;
 import com.loopcode.loopcode.exceptions.UserAlreadyExistsException;
 import com.loopcode.loopcode.exceptions.UserBannedException;
+import com.loopcode.loopcode.exceptions.UserTimeoutException;
 import com.loopcode.loopcode.repositories.BanRecordRepository;
+import com.loopcode.loopcode.repositories.TimeoutRecordRepository;
 import com.loopcode.loopcode.repositories.UserRepository;
 import com.loopcode.loopcode.security.Role;
 import com.loopcode.loopcode.security.JwtService;
@@ -20,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -30,14 +34,17 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final BanRecordRepository banRecordRepository;
+    private final TimeoutRecordRepository timeoutRecordRepository;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
-            AuthenticationManager authenticationManager, BanRecordRepository banRecordRepository) {
+            AuthenticationManager authenticationManager, BanRecordRepository banRecordRepository, 
+            TimeoutRecordRepository timeoutRecordRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.banRecordRepository = banRecordRepository;
+        this.timeoutRecordRepository = timeoutRecordRepository;
     }
 
     @Transactional
@@ -57,7 +64,7 @@ public class AuthService {
 
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponseDto login(LoginRequestDto requestDto) {
 
         Authentication authentication = authenticationManager.authenticate(
@@ -65,12 +72,30 @@ public class AuthService {
                         requestDto.email(),
                         requestDto.password()));
 
-        // Check if user is banned after successful authentication
+        // Check if user is banned or timed out after successful authentication
         User user = (User) authentication.getPrincipal();
-        Optional<BanRecord> activeBan = banRecordRepository.findByBannedUserAndActiveTrue(user);
         
+        // Check for permanent ban first
+        Optional<BanRecord> activeBan = banRecordRepository.findByBannedUserAndActiveTrue(user);
         if (activeBan.isPresent()) {
             throw new UserBannedException(activeBan.get().getBanReason());
+        }
+        
+        // Check for timeout
+        Optional<TimeoutRecord> activeTimeout = timeoutRecordRepository.findByTimedOutUserAndActiveTrue(user);
+        if (activeTimeout.isPresent()) {
+            TimeoutRecord timeout = activeTimeout.get();
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime timeoutEndDate = timeout.getTimeoutEndDate();
+            
+            // If timeout has expired, deactivate it and allow login
+            if (timeoutEndDate != null && now.isAfter(timeoutEndDate)) {
+                timeout.setActive(false);
+                timeoutRecordRepository.save(timeout);
+            } else {
+                // Timeout is still active, throw exception with timeout details
+                throw new UserTimeoutException(timeout.getReason(), timeoutEndDate);
+            }
         }
 
         String jwtToken = jwtService.generateToken(authentication);

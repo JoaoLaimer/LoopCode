@@ -56,6 +56,19 @@ export default function LoginPage() {
               setErrorMessage(
                 `Você foi banido permanentemente. Motivo: ${errorData.reason}`
               );
+            } else if (errorData.error === "TIMED_OUT_USER") {
+              const timeoutEndDate = new Date(errorData.timeoutEndDate);
+              const formattedDate = timeoutEndDate.toLocaleString("pt-BR", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              });
+              setErrorMessage(
+                `Você está temporariamente suspenso até ${formattedDate}. Motivo: ${errorData.reason}`
+              );
             } else {
               setErrorMessage(
                 "Credenciais inválidas. Por favor, tente novamente."

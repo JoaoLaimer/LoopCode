@@ -28,6 +28,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(UserTimeoutException.class)
+    public ResponseEntity<Map<String, String>> handleUserTimeoutException(UserTimeoutException ex) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "TIMED_OUT_USER");
+        response.put("message", "Usuário temporariamente suspenso");
+        response.put("reason", ex.getTimeoutReason());
+        response.put("timeoutEndDate", ex.getTimeoutEndDate().toString());
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex){
