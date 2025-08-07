@@ -136,10 +136,11 @@ public class UserController {
     @Operation(summary = "Buscar usuários por nome de usuário ou email", description = "Retorna usuários que correspondem ao termo de busca com suporte a paginação.")
     public ResponseEntity<Page<UserResponseDto>> searchUsers(
             @RequestParam("q") String query,
+            @RequestParam(value = "role", required = false) String role,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
 
-        Page<UserResponseDto> result = userService.searchUsers(query, page, size);
+        Page<UserResponseDto> result = userService.searchUsers(query, role, page, size);
         return ResponseEntity.ok(result);
     }
 

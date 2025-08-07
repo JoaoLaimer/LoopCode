@@ -18,6 +18,7 @@ import com.loopcode.loopcode.dtos.LanguageDto;
 import com.loopcode.loopcode.dtos.SimpleUserDto;
 import com.loopcode.loopcode.repositories.BanRecordRepository;
 import com.loopcode.loopcode.repositories.TimeoutRecordRepository;
+import com.loopcode.loopcode.security.Role;
 import com.loopcode.loopcode.repositories.UserRepository;
 import com.loopcode.loopcode.repositories.UserListRepository;
 import com.loopcode.loopcode.repositories.ExerciseRepository;
@@ -251,12 +252,24 @@ public class UserService {
 
         @Transactional(readOnly = true)
         public Page<UserResponseDto> searchUsers(
-                        String q, int page, int size) {
+                        String q, String role, int page, int size) {
 
                 PageRequest pr = PageRequest.of(page, size);
-                return userRepository.searchUsersExcludingBannedAndTimedOut(q, pr)
-                                .map(u -> new UserResponseDto(
-                                                u.getUsername(), u.getEmail(), u.getRole().name(), u.getDailyStreak()));
+                
+                if (role != null && !role.trim().isEmpty()) {
+                        try {
+                                Role.valueOf(role.toUpperCase());
+                                return userRepository.searchUsersExcludingBannedAndTimedOutByRole(q, role.toUpperCase(), pr)
+                                                .map(u -> new UserResponseDto(
+                                                                u.getUsername(), u.getEmail(), u.getRole().name(), u.getDailyStreak()));
+                        } catch (IllegalArgumentException e) {
+                                return Page.empty(pr);
+                        }
+                } else {
+                        return userRepository.searchUsersExcludingBannedAndTimedOut(q, pr)
+                                        .map(u -> new UserResponseDto(
+                                                        u.getUsername(), u.getEmail(), u.getRole().name(), u.getDailyStreak()));
+                }
         }
 
         @Transactional(readOnly = true)
@@ -265,13 +278,10 @@ public class UserService {
                 
                 Page<BanRecord> banRecords;
                 if (active == null) {
-                        // Return all ban records, ordered by ban date (most recent first)
                         banRecords = banRecordRepository.findAllByOrderByBanDateDesc(pr);
                 } else if (active) {
-                        // Return only active bans
                         banRecords = banRecordRepository.findByActiveTrue(pr);
                 } else {
-                        // Return only inactive bans (unbanned users)
                         banRecords = banRecordRepository.findByActiveFalse(pr);
                 }
                 
@@ -293,13 +303,10 @@ public class UserService {
                 
                 Page<TimeoutRecord> timeoutRecords;
                 if (active == null) {
-                        // Return all timeout records, ordered by timeout date (most recent first)
                         timeoutRecords = timeoutRecordRepository.findAllByOrderByTimeoutDateDesc(pr);
                 } else if (active) {
-                        // Return only active timeouts
                         timeoutRecords = timeoutRecordRepository.findByActiveTrue(pr);
                 } else {
-                        // Return only inactive timeouts
                         timeoutRecords = timeoutRecordRepository.findByActiveFalse(pr);
                 }
                 

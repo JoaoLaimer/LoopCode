@@ -121,20 +121,23 @@ function Dashboard() {
   );
 
   const searchUsers = useCallback(
-    async (query) => {
+    async (query, role = null) => {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
       try {
-        const response = await fetch(
-          `${baseUrl}/users/search?q=${encodeURIComponent(query)}&page=${
-            page - 1
-          }&size=9`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+        let url = `${baseUrl}/users/search?q=${encodeURIComponent(
+          query
+        )}&page=${page - 1}&size=9`;
+
+        if (role) {
+          url += `&role=${encodeURIComponent(role)}`;
+        }
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -339,7 +342,7 @@ function Dashboard() {
       } else if (selectedSection === "usuarios") {
         let data;
         if (isSearching && searchQuery.trim()) {
-          data = await searchUsers(searchQuery);
+          data = await searchUsers(searchQuery, "USER");
         } else {
           data = await getUsers("USER");
         }
@@ -358,7 +361,7 @@ function Dashboard() {
       } else if (selectedSection === "moderadores") {
         let data;
         if (isSearching && searchQuery.trim()) {
-          data = await searchUsers(searchQuery);
+          data = await searchUsers(searchQuery, "MOD");
         } else {
           data = await getUsers("MOD");
         }
@@ -377,7 +380,7 @@ function Dashboard() {
       } else if (selectedSection === "administradores") {
         let data;
         if (isSearching && searchQuery.trim()) {
-          data = await searchUsers(searchQuery);
+          data = await searchUsers(searchQuery, "ADMIN");
         } else {
           data = await getUsers("ADMIN");
         }

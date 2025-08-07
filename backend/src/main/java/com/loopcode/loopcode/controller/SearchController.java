@@ -42,10 +42,11 @@ public class SearchController {
             @RequestParam(value = "exSize", defaultValue = "10") int exSize,
             @RequestParam(value = "userPage", defaultValue = "0") int userPage,
             @RequestParam(value = "userSize", defaultValue = "5") int userSize,
+            @RequestParam(value = "userRole", required = false) String userRole,
             Pageable listPageable) {
         Page<ExerciseResponseDto> exResults = exerciseService.searchExercises(q, null, null, "votes", "desc", exPage,
                 exSize);
-        Page<UserResponseDto> userResults = userService.searchUsers(q, userPage, userSize);
+        Page<UserResponseDto> userResults = userService.searchUsers(q, userRole, userPage, userSize);
         Page<UserListDto> listResults = listService.searchLists(q, listPageable);
 
         SearchResultDto dto = new SearchResultDto(
