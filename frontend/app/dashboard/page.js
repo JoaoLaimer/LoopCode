@@ -32,10 +32,36 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
-import AuthGuard from "../auth-guard";
+import AuthGuard, { useAuth } from "../auth-guard";
 
 function Dashboard() {
+  const { role: userRole } = useAuth();
   const [selectedSection, setSelectedSection] = useState("usuarios");
+
+  // Helper function to check if a section is allowed for the current user role
+  const isSectionAllowed = useCallback(
+    (section) => {
+      if (userRole === "ADMIN") return true;
+      if (userRole === "MOD") {
+        return ["usuarios", "exercicios", "timeouts"].includes(section);
+      }
+      return false;
+    },
+    [userRole]
+  );
+
+  // Helper function to check if an action is allowed for the current user role
+  const isActionAllowed = useCallback(
+    (action) => {
+      if (userRole === "ADMIN") return true;
+      if (userRole === "MOD") {
+        const allowedActions = ["timeout", "verify", "removeTimeout"];
+        return allowedActions.includes(action);
+      }
+      return false;
+    },
+    [userRole]
+  );
   const [exercises, setExercises] = useState({
     content: [],
     totalPages: 1,
@@ -70,6 +96,13 @@ function Dashboard() {
   const [selectedRole, setSelectedRole] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+
+  // Ensure MODs start with an allowed section
+  useEffect(() => {
+    if (userRole && !isSectionAllowed(selectedSection)) {
+      setSelectedSection("usuarios"); // Default to usuarios for MODs
+    }
+  }, [userRole, selectedSection, isSectionAllowed]);
 
   const verifyExercise = async (id) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -681,6 +714,9 @@ function Dashboard() {
   };
 
   const handleSectionChange = (section) => {
+    if (!isSectionAllowed(section)) {
+      return; // Don't allow access to forbidden sections
+    }
     setSelectedSection(section);
     setPage(1);
     setSearchQuery("");
@@ -704,7 +740,7 @@ function Dashboard() {
             <Box sx={{ mb: 3 }}>
               <TextField
                 fullWidth
-                placeholder={`Buscar todos os usuários por nome de usuário ou email...`}
+                placeholder={`Buscar usuários por nome de usuário ou email...`}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -821,85 +857,96 @@ function Dashboard() {
                               {(user.role === "USER" ||
                                 user.role === "MOD") && (
                                 <>
-                                  <Button
-                                    variant="contained"
-                                    size="small"
-                                    onClick={() => {
-                                      banUser(user.username)
-                                        .then((result) => {
-                                          if (result) {
-                                            if (
-                                              isSearching &&
-                                              searchQuery.trim()
-                                            ) {
-                                              return searchUsers(searchQuery);
-                                            } else if (
-                                              selectedSection === "usuarios"
-                                            ) {
-                                              return getUsers("USER");
-                                            } else if (
-                                              selectedSection === "moderadores"
-                                            ) {
-                                              return getUsers("MOD");
-                                            } else if (
-                                              selectedSection ===
-                                              "administradores"
-                                            ) {
-                                              return getUsers("ADMIN");
+                                  {/* Ban button - only for ADMINs */}
+                                  {isActionAllowed("ban") && (
+                                    <Button
+                                      variant="contained"
+                                      size="small"
+                                      onClick={() => {
+                                        banUser(user.username)
+                                          .then((result) => {
+                                            if (result) {
+                                              if (
+                                                isSearching &&
+                                                searchQuery.trim()
+                                              ) {
+                                                return searchUsers(searchQuery);
+                                              } else if (
+                                                selectedSection === "usuarios"
+                                              ) {
+                                                return getUsers("USER");
+                                              } else if (
+                                                selectedSection ===
+                                                "moderadores"
+                                              ) {
+                                                return getUsers("MOD");
+                                              } else if (
+                                                selectedSection ===
+                                                "administradores"
+                                              ) {
+                                                return getUsers("ADMIN");
+                                              }
                                             }
-                                          }
-                                        })
-                                        .then((data) => {
-                                          if (data) setUsers(data);
-                                        });
-                                    }}
-                                  >
-                                    Ban
-                                  </Button>
-                                  <Button
-                                    variant="contained"
-                                    size="small"
-                                    onClick={() => {
-                                      timeoutUser(user.username)
-                                        .then((result) => {
-                                          if (result) {
-                                            if (
-                                              isSearching &&
-                                              searchQuery.trim()
-                                            ) {
-                                              return searchUsers(searchQuery);
-                                            } else if (
-                                              selectedSection === "usuarios"
-                                            ) {
-                                              return getUsers("USER");
-                                            } else if (
-                                              selectedSection === "moderadores"
-                                            ) {
-                                              return getUsers("MOD");
-                                            } else if (
-                                              selectedSection ===
-                                              "administradores"
-                                            ) {
-                                              return getUsers("ADMIN");
+                                          })
+                                          .then((data) => {
+                                            if (data) setUsers(data);
+                                          });
+                                      }}
+                                    >
+                                      Ban
+                                    </Button>
+                                  )}
+                                  {/* Timeout button - for both ADMINs and MODs */}
+                                  {isActionAllowed("timeout") && (
+                                    <Button
+                                      variant="contained"
+                                      size="small"
+                                      onClick={() => {
+                                        timeoutUser(user.username)
+                                          .then((result) => {
+                                            if (result) {
+                                              if (
+                                                isSearching &&
+                                                searchQuery.trim()
+                                              ) {
+                                                return searchUsers(searchQuery);
+                                              } else if (
+                                                selectedSection === "usuarios"
+                                              ) {
+                                                return getUsers("USER");
+                                              } else if (
+                                                selectedSection ===
+                                                "moderadores"
+                                              ) {
+                                                return getUsers("MOD");
+                                              } else if (
+                                                selectedSection ===
+                                                "administradores"
+                                              ) {
+                                                return getUsers("ADMIN");
+                                              }
                                             }
-                                          }
-                                        })
-                                        .then((data) => {
-                                          if (data) setUsers(data);
-                                        });
-                                    }}
-                                  >
-                                    Timeout
-                                  </Button>
+                                          })
+                                          .then((data) => {
+                                            if (data) setUsers(data);
+                                          });
+                                      }}
+                                    >
+                                      Timeout
+                                    </Button>
+                                  )}
                                 </>
                               )}
-                              <Button
-                                variant="contained"
-                                size="small"
-                                onClick={() => handleRoleChange(user)}
-                              >
-                                Change Role
-                              </Button>
+                              {/* Role change button - only for ADMINs */}
+                              {isActionAllowed("changeRole") && (
+                                <Button
+                                  variant="contained"
+                                  size="small"
+                                  onClick={() => handleRoleChange(user)}
+                                >
+                                  Change Role
+                                </Button>
+                              )}
                             </Box>
                           </TableCell>
                         </TableRow>
@@ -1423,35 +1470,41 @@ function Dashboard() {
                           </TableCell>
                           <TableCell>
                             <Box sx={{ display: "flex", gap: 1 }}>
-                              <Button
-                                variant="contained"
-                                size="small"
-                                onClick={() =>
-                                  alert(`Delete exercise ${exercise.id}`)
-                                }
-                              >
-                                <DeleteIcon />
-                              </Button>
-                              <Button
-                                variant="contained"
-                                size="small"
-                                disabled={exercise.verified}
-                                onClick={() => {
-                                  verifyExercise(exercise.id)
-                                    .then(() => {
-                                      if (isSearching && searchQuery.trim()) {
-                                        return searchExercises(searchQuery);
-                                      } else {
-                                        return getExercises();
-                                      }
-                                    })
-                                    .then((data) => {
-                                      if (data) setExercises(data);
-                                    });
-                                }}
-                              >
-                                <VerifiedUserRounded />
-                              </Button>
+                              {/* Delete button - only for ADMINs */}
+                              {isActionAllowed("delete") && (
+                                <Button
+                                  variant="contained"
+                                  size="small"
+                                  onClick={() =>
+                                    alert(`Delete exercise ${exercise.id}`)
+                                  }
+                                >
+                                  <DeleteIcon />
+                                </Button>
+                              )}
+                              {/* Verify button - for both ADMINs and MODs */}
+                              {isActionAllowed("verify") && (
+                                <Button
+                                  variant="contained"
+                                  size="small"
+                                  disabled={exercise.verified}
+                                  onClick={() => {
+                                    verifyExercise(exercise.id)
+                                      .then(() => {
+                                        if (isSearching && searchQuery.trim()) {
+                                          return searchExercises(searchQuery);
+                                        } else {
+                                          return getExercises();
+                                        }
+                                      })
+                                      .then((data) => {
+                                        if (data) setExercises(data);
+                                      });
+                                  }}
+                                >
+                                  <VerifiedUserRounded />
+                                </Button>
+                              )}
                             </Box>
                           </TableCell>
                         </TableRow>
@@ -1527,105 +1580,129 @@ function Dashboard() {
             }}
           >
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <Button
-                sx={{
-                  justifyContent: "flex-start",
-                  color: selectedSection === "usuarios" ? "card.main" : "white",
-                }}
-                fullWidth
-                onClick={() => handleSectionChange("usuarios")}
-              >
-                Usuários
-              </Button>
-              <Button
-                sx={{
-                  justifyContent: "flex-start",
-                  color:
-                    selectedSection === "moderadores" ? "card.main" : "white",
-                }}
-                fullWidth
-                onClick={() => handleSectionChange("moderadores")}
-              >
-                Moderadores
-              </Button>
-              <Button
-                sx={{
-                  justifyContent: "flex-start",
-                  color:
-                    selectedSection === "administradores"
-                      ? "card.main"
-                      : "white",
-                }}
-                fullWidth
-                onClick={() => handleSectionChange("administradores")}
-              >
-                Administradores
-              </Button>
+              {/* Usuários section - available to both ADMINs and MODs */}
+              {isSectionAllowed("usuarios") && (
+                <Button
+                  sx={{
+                    justifyContent: "flex-start",
+                    color:
+                      selectedSection === "usuarios" ? "card.main" : "white",
+                  }}
+                  fullWidth
+                  onClick={() => handleSectionChange("usuarios")}
+                >
+                  Usuários
+                </Button>
+              )}
+              {/* Moderadores section - only for ADMINs */}
+              {isSectionAllowed("moderadores") && (
+                <Button
+                  sx={{
+                    justifyContent: "flex-start",
+                    color:
+                      selectedSection === "moderadores" ? "card.main" : "white",
+                  }}
+                  fullWidth
+                  onClick={() => handleSectionChange("moderadores")}
+                >
+                  Moderadores
+                </Button>
+              )}
+              {/* Administradores section - only for ADMINs */}
+              {isSectionAllowed("administradores") && (
+                <Button
+                  sx={{
+                    justifyContent: "flex-start",
+                    color:
+                      selectedSection === "administradores"
+                        ? "card.main"
+                        : "white",
+                  }}
+                  fullWidth
+                  onClick={() => handleSectionChange("administradores")}
+                >
+                  Administradores
+                </Button>
+              )}
             </Box>
           </Box>
         </Box>
 
-        <Box sx={{ bgcolor: "primary.secondary", borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ p: 1.5 }}>
-            Moderação
-          </Typography>
-          <Box
-            sx={{
-              bgcolor: "card.primary",
-              p: 1,
-              borderBottomLeftRadius: 8,
-              borderBottomRightRadius: 8,
-              gap: 1,
-            }}
-          >
-            <Button
+        {/* Moderação section - show only if user has access to any moderation features */}
+        {(isSectionAllowed("bans") || isSectionAllowed("timeouts")) && (
+          <Box sx={{ bgcolor: "primary.secondary", borderRadius: 2 }}>
+            <Typography variant="h6" sx={{ p: 1.5 }}>
+              Moderação
+            </Typography>
+            <Box
               sx={{
-                justifyContent: "flex-start",
-                color: selectedSection === "bans" ? "card.main" : "white",
+                bgcolor: "card.primary",
+                p: 1,
+                borderBottomLeftRadius: 8,
+                borderBottomRightRadius: 8,
+                gap: 1,
               }}
-              fullWidth
-              onClick={() => handleSectionChange("bans")}
             >
-              Bans
-            </Button>
-            <Button
-              sx={{
-                justifyContent: "flex-start",
-                color: selectedSection === "timeouts" ? "card.main" : "white",
-              }}
-              fullWidth
-              onClick={() => handleSectionChange("timeouts")}
-            >
-              Timeouts
-            </Button>
+              {/* Bans section - only for ADMINs */}
+              {isSectionAllowed("bans") && (
+                <Button
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: selectedSection === "bans" ? "card.main" : "white",
+                  }}
+                  fullWidth
+                  onClick={() => handleSectionChange("bans")}
+                >
+                  Bans
+                </Button>
+              )}
+              {/* Timeouts section - available to both ADMINs and MODs */}
+              {isSectionAllowed("timeouts") && (
+                <Button
+                  sx={{
+                    justifyContent: "flex-start",
+                    color:
+                      selectedSection === "timeouts" ? "card.main" : "white",
+                  }}
+                  fullWidth
+                  onClick={() => handleSectionChange("timeouts")}
+                >
+                  Timeouts
+                </Button>
+              )}
+            </Box>
           </Box>
-        </Box>
+        )}
 
-        <Box sx={{ bgcolor: "primary.secondary", borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ p: 1.5 }}>
-            Exercícios
-          </Typography>
-          <Box
-            sx={{
-              bgcolor: "card.primary",
-              p: 1,
-              borderBottomLeftRadius: 8,
-              borderBottomRightRadius: 8,
-            }}
-          >
-            <Button
-              sx={{
-                justifyContent: "flex-start",
-                color: selectedSection === "exercicios" ? "card.main" : "white",
-                mb: 1,
-              }}
-              fullWidth
-              onClick={() => handleSectionChange("exercicios")}
-            >
+        {/* Exercícios section - available to both ADMINs and MODs */}
+        {isSectionAllowed("exercicios") && (
+          <Box sx={{ bgcolor: "primary.secondary", borderRadius: 2 }}>
+            <Typography variant="h6" sx={{ p: 1.5 }}>
               Exercícios
-            </Button>
+            </Typography>
+            <Box
+              sx={{
+                bgcolor: "card.primary",
+                p: 1,
+                borderBottomLeftRadius: 8,
+                borderBottomRightRadius: 8,
+              }}
+            >
+              <Button
+                sx={{
+                  justifyContent: "flex-start",
+                  color:
+                    selectedSection === "exercicios" ? "card.main" : "white",
+                  mb: 1,
+                }}
+                fullWidth
+                onClick={() => handleSectionChange("exercicios")}
+              >
+                Exercícios
+              </Button>
+            </Box>
           </Box>
-        </Box>
+        )}
       </Box>
 
       {/* Content */}
