@@ -1,21 +1,14 @@
 "use client";
 
 import React from "react";
-import {
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-  Stack,
-
-} from "@mui/material";
+import { Box, Typography, IconButton, Chip, Stack } from "@mui/material";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
 import VerifiedUserRounded from "@mui/icons-material/VerifiedUserRounded";
 import GppBadRounded from "@mui/icons-material/GppBadRounded";
-import CodeIcon from '@mui/icons-material/Code';
-import CalculateIcon from '@mui/icons-material/Calculate';
+import CodeIcon from "@mui/icons-material/Code";
+import CalculateIcon from "@mui/icons-material/Calculate";
 import { useRouter } from "next/navigation";
 
 export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
@@ -51,11 +44,24 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
       }}
     >
       {/* Container título e chips separados */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <Typography
           variant="subtitle1"
           fontWeight="bold"
-          sx={{ color: "white", flex: 1, mr: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          sx={{
+            color: "white",
+            flex: 1,
+            mr: 2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
         >
           {exercise.title}
         </Typography>
@@ -66,13 +72,14 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
             icon={<CalculateIcon />}
             label={
               exercise
-                ? exercise.difficulty.charAt(0) + exercise.difficulty.slice(1).toLowerCase()
+                ? exercise.difficulty.charAt(0) +
+                  exercise.difficulty.slice(1).toLowerCase()
                 : "Carregando..."
             }
             sx={{
-              bgcolor: 'primary.main',
+              bgcolor: "primary.main",
               color: "white",
-              fontSize: "0.75rem",     
+              fontSize: "0.75rem",
               paddingLeft: 0.3,
               paddingRight: 0.3,
             }}
@@ -92,7 +99,9 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
 
           <Chip
             size="small"
-            icon={exercise.verified ? <VerifiedUserRounded /> : <GppBadRounded />}
+            icon={
+              exercise.verified ? <VerifiedUserRounded /> : <GppBadRounded />
+            }
             label={exercise.verified ? "Verificado" : "Não verificado"}
             sx={{
               bgcolor: exercise.verified ? "success.main" : "error.main",
@@ -109,7 +118,11 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
         Criado por{" "}
         <a
           href={`/users/${exercise.createdBy.username}`}
-          style={{ color: "#8B5CF6", textDecoration: "none", fontWeight: "bold" }}
+          style={{
+            color: "#8B5CF6",
+            textDecoration: "none",
+            fontWeight: "bold",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {exercise.createdBy.username}
@@ -133,7 +146,9 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
         onClick={(e) => e.stopPropagation()}
       >
         {showFireIcon && (
-          <LocalFireDepartmentIcon sx={{ color: "primary.main", fontSize: 26 }} />
+          <LocalFireDepartmentIcon
+            sx={{ color: "primary.main", fontSize: 26 }}
+          />
         )}
 
         <Box
@@ -142,6 +157,8 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
             alignItems: "center",
             backgroundColor: "card.primary",
             borderRadius: "25px",
+            border: "2px solid",
+            borderColor: "primary.main",
             px: 1,
             py: 0.5,
             gap: 1,
@@ -156,7 +173,9 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
               onVote(exercise.id, "upvote");
             }}
           >
-            <ArrowDropUpIcon sx={{ color: voteStatus === "up" ? "primary.main" : "gray" }} />
+            <ArrowDropUpIcon
+              sx={{ color: voteStatus === "up" ? "primary.main" : "gray" }}
+            />
           </IconButton>
 
           <Typography
@@ -172,7 +191,9 @@ export default function HomeExerciseItem({ exercise, voteStatus, onVote }) {
               onVote(exercise.id, "downvote");
             }}
           >
-            <ArrowDropDownIcon sx={{ color: voteStatus === "down" ? "primary.main" : "gray" }} />
+            <ArrowDropDownIcon
+              sx={{ color: voteStatus === "down" ? "primary.main" : "gray" }}
+            />
           </IconButton>
         </Box>
       </Stack>
