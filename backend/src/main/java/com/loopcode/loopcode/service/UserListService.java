@@ -128,4 +128,11 @@ public class UserListService {
                                 .map(this::toDto);
         }
 
+        @Transactional
+        public void deleteList(Long listId) {
+                UserList list = userListRepository.findById(listId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Lista não encontrada: " + listId));
+                userListRepository.delete(list);
+        }
+
 }

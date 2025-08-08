@@ -90,6 +90,13 @@ function Dashboard() {
     first: true,
     last: true,
   });
+  const [lists, setLists] = useState({
+    content: [],
+    totalPages: 1,
+    number: 0,
+    first: true,
+    last: true,
+  });
   const [page, setPage] = useState(1);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -246,6 +253,36 @@ function Dashboard() {
     [page]
   );
 
+  const searchLists = useCallback(
+    async (query) => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      try {
+        const response = await fetch(
+          `${baseUrl}/lists/search?q=${encodeURIComponent(query)}&page=${
+            page - 1
+          }&size=9`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("List search results:", data);
+        return data;
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    },
+    [page]
+  );
+
   const searchTimeouts = useCallback(
     async (query) => {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -301,6 +338,28 @@ function Dashboard() {
     }
   }, [page]);
 
+  const getLists = useCallback(async () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const response = await fetch(`${baseUrl}/lists?page=${page - 1}&size=9`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Fetched lists:", data);
+      return data;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  }, [page]);
+
   const deleteExercise = useCallback(async (id) => {
     const sure = confirm("Tem certeza que deseja deletar este exercício?");
     if (!sure) return;
@@ -318,6 +377,30 @@ function Dashboard() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       console.log("Exercise deleted successfully");
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  }, []);
+
+  const deleteList = useCallback(async (id) => {
+    const sure = confirm("Tem certeza que deseja deletar esta lista?");
+    if (!sure) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const response = await fetch(`${baseUrl}/lists/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      console.log("List deleted successfully");
       return true;
     } catch (err) {
       console.error(err);
@@ -491,6 +574,25 @@ function Dashboard() {
           });
           console.error("Failed to fetch timeouts");
         }
+      } else if (selectedSection === "listas") {
+        let data;
+        if (isSearching && searchQuery.trim()) {
+          data = await searchLists(searchQuery);
+        } else {
+          data = await getLists();
+        }
+        if (data) {
+          setLists(data);
+        } else {
+          setLists({
+            content: [],
+            totalPages: 1,
+            number: 0,
+            first: true,
+            last: true,
+          });
+          console.error("Failed to fetch lists");
+        }
       }
     };
     fetchData();
@@ -498,6 +600,7 @@ function Dashboard() {
     page,
     selectedSection,
     getExercises,
+    getLists,
     getUsers,
     getBans,
     getTimeouts,
@@ -505,6 +608,7 @@ function Dashboard() {
     searchBans,
     searchTimeouts,
     searchExercises,
+    searchLists,
     searchQuery,
     isSearching,
   ]);
@@ -711,6 +815,8 @@ function Dashboard() {
       currentData = bans;
     } else if (selectedSection === "timeouts") {
       currentData = timeouts;
+    } else if (selectedSection === "listas") {
+      currentData = lists;
     } else {
       currentData = users;
     }
@@ -728,6 +834,8 @@ function Dashboard() {
       currentData = bans;
     } else if (selectedSection === "timeouts") {
       currentData = timeouts;
+    } else if (selectedSection === "listas") {
+      currentData = lists;
     } else {
       currentData = users;
     }
@@ -1584,6 +1692,194 @@ function Dashboard() {
             )}
           </Box>
         );
+      case "listas":
+        return (
+          <Box sx={{}}>
+            {/* Search Input */}
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                fullWidth
+                placeholder={`Buscar listas por nome...`}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim()) {
+                    setIsSearching(true);
+                    setPage(1);
+                  } else {
+                    setIsSearching(false);
+                    setPage(1);
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery && (
+                    <InputAdornment position="end">
+                      <Button
+                        onClick={handleClearSearch}
+                        sx={{ minWidth: "auto", p: 1 }}
+                      >
+                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+                      </Button>
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    color: "white",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.3)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.5)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                    },
+                  },
+                }}
+                sx={{
+                  "& .MuiInputBase-input::placeholder": {
+                    color: "rgba(255, 255, 255, 0.5)",
+                    opacity: 1,
+                  },
+                }}
+              />
+            </Box>
+
+            {Array.isArray(lists.content) && lists.content.length > 0 ? (
+              <>
+                <TableContainer
+                  component={Paper}
+                  sx={{ bgcolor: "#1e1e2e", mb: 3 }}
+                >
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "primary.secondary" }}>
+                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                          ID
+                        </TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                          Name
+                        </TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                          Description
+                        </TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                          Owner
+                        </TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                          Exercises
+                        </TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                          Created At
+                        </TableCell>
+                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {lists.content.map((list) => (
+                        <TableRow
+                          key={list.id}
+                          sx={{
+                            "&:hover": { bgcolor: "#2a2a3e" },
+                            bgcolor: "card.primary",
+                          }}
+                        >
+                          <TableCell sx={{ color: "white" }}>
+                            {list.id}
+                          </TableCell>
+                          <TableCell sx={{ color: "white" }}>
+                            {list.name}
+                          </TableCell>
+                          <TableCell sx={{ color: "white", maxWidth: "300px" }}>
+                            {list.description?.length > 100
+                              ? `${list.description.substring(0, 100)}...`
+                              : list.description}
+                          </TableCell>
+                          <TableCell sx={{ color: "white" }}>
+                            {list.ownerUsername}
+                          </TableCell>
+                          <TableCell sx={{ color: "white" }}>
+                            {Array.isArray(list.exercises)
+                              ? list.exercises.length
+                              : 0}
+                          </TableCell>
+                          <TableCell sx={{ color: "white" }}>
+                            {list.createdAt
+                              ? new Date(list.createdAt).toLocaleString()
+                              : ""}
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                              {isActionAllowed("delete") && (
+                                <Button
+                                  variant="contained"
+                                  size="small"
+                                  onClick={() =>
+                                    deleteList(list.id).then((success) => {
+                                      if (success) {
+                                        setLists((prev) => ({
+                                          ...prev,
+                                          content: prev.content.filter(
+                                            (l) => l.id !== list.id
+                                          ),
+                                        }));
+                                      }
+                                    })
+                                  }
+                                >
+                                  <DeleteIcon />
+                                </Button>
+                              )}
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                {/* Pagination Controls */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    mt: 4,
+                    gap: 2,
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    onClick={handlePreviousPage}
+                    disabled={lists.first}
+                  >
+                    <ArrowBackIosNewIcon />
+                  </Button>
+                  <Typography sx={{ color: "white" }}>
+                    Página {lists.number + 1} de {lists.totalPages}
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={handleNextPage}
+                    disabled={lists.last}
+                  >
+                    <ArrowForwardIosIcon />
+                  </Button>
+                </Box>
+              </>
+            ) : (
+              <Typography variant="body2" sx={{ color: "white" }}>
+                Nenhuma lista encontrada.
+              </Typography>
+            )}
+          </Box>
+        );
       default:
         return null;
     }
@@ -1735,6 +2031,18 @@ function Dashboard() {
               >
                 Exercícios
               </Button>
+              {isSectionAllowed("listas") && (
+                <Button
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: selectedSection === "listas" ? "card.main" : "white",
+                  }}
+                  fullWidth
+                  onClick={() => handleSectionChange("listas")}
+                >
+                  Listas
+                </Button>
+              )}
             </Box>
           </Box>
         )}

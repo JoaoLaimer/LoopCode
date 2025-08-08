@@ -71,4 +71,12 @@ public class UserListController {
         Page<UserListDto> result = listService.searchLists(q, pageable);
         return ResponseEntity.ok(result);
     }
+
+    @DeleteMapping("/lists/{listId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Deleta uma lista de exercícios", description = "Remove uma lista do sistema. Apenas administradores podem deletar listas.")
+    public ResponseEntity<Void> delete(@PathVariable Long listId) {
+        listService.deleteList(listId);
+        return ResponseEntity.noContent().build();
+    }
 }
