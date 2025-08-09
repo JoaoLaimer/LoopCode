@@ -25,11 +25,83 @@ export default function ExercisePage({ params }) {
   const [exercise, setExercise] = useState(null);
   const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
 
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  const token = localStorage.getItem("token");
+  const handleVote = async (exerciseId, type) => {
+    try {
+      const response = await fetch(
+        `${baseUrl}/exercises/${exerciseId}/${type}`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!response.ok) {
+        console.error("Erro ao votar");
+        return;
+      }
+      updateVoteLocalmente(type);
+    } catch (error) {
+      console.error("Erro na requisição de voto:", error);
+    }
+  };
+
+  const updateVoteLocalmente = (type) => {
+    setExercise((ex) => {
+      if (!ex) return ex;
+
+      const currentVote = ex.userVote; // 1, 0 ou -1
+      let delta = 0;
+      let newVote = currentVote;
+
+      if (type === "upvote") {
+        if (currentVote === 1) {
+          // remove upvote
+          delta = -1;
+          newVote = 0;
+        } else if (currentVote === -1) {
+          // troca down para up
+          delta = 2;
+          newVote = 1;
+        } else {
+          // vota up pela primeira vez
+          delta = 1;
+          newVote = 1;
+        }
+      } else if (type === "downvote") {
+        if (currentVote === -1) {
+          // remove downvote
+          delta = 1;
+          newVote = 0;
+        } else if (currentVote === 1) {
+          // troca up para down
+          delta = -2;
+          newVote = -1;
+        } else {
+          // vota down pela primeira vez
+          delta = -1;
+          newVote = -1;
+        }
+      }
+
+      return {
+        ...ex,
+        voteCount: ex.voteCount + delta,
+        userVote: newVote,
+      };
+    });
+  };
+
+
+
+
   const getExercise = async (id) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
       const response = await fetch(`${baseUrl}/exercises/${id}`, {
         method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
         window.location.href = "/not-found";
@@ -46,6 +118,7 @@ export default function ExercisePage({ params }) {
       const data = await getExercise(id);
       if (data) {
         setExercise(data);
+        console.log(data);
       } else {
         setExercise(null);
       }
@@ -199,7 +272,7 @@ export default function ExercisePage({ params }) {
         overflow: "hidden",
         color: "white",
         gap: 4,
-        p: 4,
+        py: 4,
         bgcolor: "background.default",
       }}
     >
@@ -252,8 +325,8 @@ export default function ExercisePage({ params }) {
           <Box sx={{ flexShrink: 0 }}>
             <ExercicioItem
               exercicio={exercise}
-              onUpvote={() => {}}
-              onDownvote={() => {}}
+              onUpvote={() => handleVote(exercise.id, "upvote")}
+              onDownvote={() => handleVote(exercise.id, "downvote")}
               onlyVotes={true}
             />
           </Box>
@@ -266,7 +339,7 @@ export default function ExercisePage({ params }) {
             label={
               exercise
                 ? exercise.difficulty.charAt(0) +
-                  exercise.difficulty.slice(1).toLowerCase()
+                exercise.difficulty.slice(1).toLowerCase()
                 : "Carregando..."
             }
             sx={{

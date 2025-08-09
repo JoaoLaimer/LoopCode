@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Button,
   Dialog,
   DialogTitle,
@@ -15,840 +13,269 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  TextField,
-  InputAdornment,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import VerifiedUserRounded from "@mui/icons-material/VerifiedUserRounded";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import SearchIcon from "@mui/icons-material/Search";
-import ClearIcon from "@mui/icons-material/Clear";
+
 import AuthGuard, { useAuth } from "../auth-guard";
+
+import TableUsers from "@/components/TableUsers";
+import TableBans from "@/components/TableBans";
+import TableTimeouts from "@/components/TableTimeouts";
+import TableExercises from "@/components/TableExercises";
+import TableLists from "@/components/TableLists";
+
+const EMPTY_PAGE = { content: [], totalPages: 1, number: 0, first: true, last: true };
+
+const SECTIONS = {
+  USERS: "usuarios",
+  MODS: "moderadores",
+  ADMINS: "administradores",
+  BANS: "bans",
+  TIMEOUTS: "timeouts",
+  EXERCISES: "exercicios",
+  LISTS: "listas",
+};
 
 function Dashboard() {
   const { role: userRole } = useAuth();
-  const [selectedSection, setSelectedSection] = useState("usuarios");
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-  // Helper function to check if a section is allowed for the current user role
-  const isSectionAllowed = useCallback(
-    (section) => {
-      if (userRole === "ADMIN") return true;
-      if (userRole === "MOD") {
-        return ["usuarios", "exercicios", "timeouts"].includes(section);
-      }
-      return false;
-    },
-    [userRole]
-  );
-
-  // Helper function to check if an action is allowed for the current user role
-  const isActionAllowed = useCallback(
-    (action) => {
-      if (userRole === "ADMIN") return true;
-      if (userRole === "MOD") {
-        const allowedActions = ["timeout", "verify", "removeTimeout"];
-        return allowedActions.includes(action);
-      }
-      return false;
-    },
-    [userRole]
-  );
-  const [exercises, setExercises] = useState({
-    content: [],
-    totalPages: 1,
-    number: 0,
-    first: true,
-    last: true,
-  });
-  const [users, setUsers] = useState({
-    content: [],
-    totalPages: 1,
-    number: 0,
-    first: true,
-    last: true,
-  });
-  const [bans, setBans] = useState({
-    content: [],
-    totalPages: 1,
-    number: 0,
-    first: true,
-    last: true,
-  });
-  const [timeouts, setTimeouts] = useState({
-    content: [],
-    totalPages: 1,
-    number: 0,
-    first: true,
-    last: true,
-  });
-  const [lists, setLists] = useState({
-    content: [],
-    totalPages: 1,
-    number: 0,
-    first: true,
-    last: true,
-  });
+  // UI / controle
+  const [selectedSection, setSelectedSection] = useState(SECTIONS.USERS);
   const [page, setPage] = useState(1);
-  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedRole, setSelectedRole] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
-  // Ensure MODs start with an allowed section
+  // Dados paginados
+  const [users, setUsers] = useState(EMPTY_PAGE);
+  const [exercises, setExercises] = useState(EMPTY_PAGE);
+  const [bans, setBans] = useState(EMPTY_PAGE);
+  const [timeouts, setTimeouts] = useState(EMPTY_PAGE);
+  const [lists, setLists] = useState(EMPTY_PAGE);
+
+  // Dialog / role change
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedRole, setSelectedRole] = useState("");
+
+  // ---------- Permissões ----------
+  const isSectionAllowed = (section) => {
+    if (userRole === "ADMIN") return true;
+    if (userRole === "MOD") {
+      return [SECTIONS.USERS, SECTIONS.EXERCISES, SECTIONS.TIMEOUTS].includes(section);
+    }
+    return false;
+  };
+
+  const isActionAllowed = (action) => {
+    if (userRole === "ADMIN") return true;
+    if (userRole === "MOD") {
+      const allowedActions = ["timeout", "verify", "removeTimeout"];
+      return allowedActions.includes(action);
+    }
+    return false;
+  };
+
+  // Garante que MODs comecem em seção permitida (disparado quando userRole muda)
   useEffect(() => {
     if (userRole && !isSectionAllowed(selectedSection)) {
-      setSelectedSection("usuarios"); // Default to usuarios for MODs
+      setSelectedSection(SECTIONS.USERS);
     }
-  }, [userRole, selectedSection, isSectionAllowed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userRole]);
 
-  const verifyExercise = async (id) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
+  // ---------- Helper de fetch (centraliza Authorization / tratamento) ----------
+  const fetchJson = async (endpoint, init = {}) => {
     try {
-      const response = await fetch(`${baseUrl}/exercises/${id}/verify`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const token = localStorage.getItem("token");
+      const headers = { ...(init.headers || {}) };
+      if (token) headers.Authorization = `Bearer ${token}`;
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const res = await fetch(`${baseUrl}${endpoint}`, { ...init, headers });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-      alert("Verified exercise successfully");
+      // tentamos parsear json; se não for json, devolvemos texto
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) return await res.json();
+      return await res.text();
     } catch (err) {
-      console.error(err);
+      console.error("fetchJson error:", err);
       return null;
     }
   };
 
-  const getUsers = useCallback(
-    async (role) => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      try {
-        const response = await fetch(
-          `${baseUrl}/users?page=${page - 1}&size=9&role=${role}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log(`Fetched ${role} users:`, data);
-        return data;
-      } catch (err) {
-        console.error(err);
-        return null;
-      }
-    },
-    [page]
-  );
-
-  const searchUsers = useCallback(
-    async (query, role = null) => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      try {
-        let url = `${baseUrl}/users/search?q=${encodeURIComponent(
-          query
-        )}&page=${page - 1}&size=9`;
-
-        if (role) {
-          url += `&role=${encodeURIComponent(role)}`;
-        }
-
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Search results:", data);
-        return data;
-      } catch (err) {
-        console.error(err);
-        return null;
-      }
-    },
-    [page]
-  );
-
-  const searchBans = useCallback(
-    async (query) => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      try {
-        const response = await fetch(
-          `${baseUrl}/users/bans/search?q=${encodeURIComponent(query)}&page=${
-            page - 1
-          }&size=9`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Ban search results:", data);
-        return data;
-      } catch (err) {
-        console.error(err);
-        return null;
-      }
-    },
-    [page]
-  );
-
-  const searchExercises = useCallback(
-    async (query) => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      try {
-        const response = await fetch(
-          `${baseUrl}/exercises/search?q=${encodeURIComponent(query)}&page=${
-            page - 1
-          }&size=9`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Exercise search results:", data);
-        return data;
-      } catch (err) {
-        console.error(err);
-        return null;
-      }
-    },
-    [page]
-  );
-
-  const searchLists = useCallback(
-    async (query) => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      try {
-        const response = await fetch(
-          `${baseUrl}/lists/search?q=${encodeURIComponent(query)}&page=${
-            page - 1
-          }&size=9`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("List search results:", data);
-        return data;
-      } catch (err) {
-        console.error(err);
-        return null;
-      }
-    },
-    [page]
-  );
-
-  const searchTimeouts = useCallback(
-    async (query) => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      try {
-        const response = await fetch(
-          `${baseUrl}/users/timeouts/search?q=${encodeURIComponent(
-            query
-          )}&page=${page - 1}&size=9`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Timeout search results:", data);
-        return data;
-      } catch (err) {
-        console.error(err);
-        return null;
-      }
-    },
-    [page]
-  );
-
-  const getExercises = useCallback(async () => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    try {
-      const response = await fetch(
-        `${baseUrl}/exercises?page=${page - 1}&size=9`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log("Fetched exercises:", data);
-      return data;
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  }, [page]);
-
-  const getLists = useCallback(async () => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    try {
-      const response = await fetch(`${baseUrl}/lists?page=${page - 1}&size=9`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log("Fetched lists:", data);
-      return data;
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  }, [page]);
-
-  const deleteExercise = useCallback(async (id) => {
-    const sure = confirm("Tem certeza que deseja deletar este exercício?");
-    if (!sure) return;
-
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    try {
-      const response = await fetch(`${baseUrl}/exercises/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      console.log("Exercise deleted successfully");
-      return true;
-    } catch (err) {
-      console.error(err);
-      return false;
-    }
-  }, []);
-
-  const deleteList = useCallback(async (id) => {
-    const sure = confirm("Tem certeza que deseja deletar esta lista?");
-    if (!sure) return;
-
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    try {
-      const response = await fetch(`${baseUrl}/lists/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      console.log("List deleted successfully");
-      return true;
-    } catch (err) {
-      console.error(err);
-      return false;
-    }
-  }, []);
-
-  const getBans = useCallback(async () => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    try {
-      const response = await fetch(
-        `${baseUrl}/users/bans?page=${page - 1}&size=9&active=true`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log("Fetched bans:", data);
-      return data;
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  }, [page]);
-
-  const getTimeouts = useCallback(async () => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    try {
-      const response = await fetch(
-        `${baseUrl}/users/timeouts?page=${page - 1}&size=9&active=true`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log("Fetched timeouts:", data);
-      return data;
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  }, [page]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (selectedSection === "exercicios") {
-        let data;
-        if (isSearching && searchQuery.trim()) {
-          data = await searchExercises(searchQuery);
-        } else {
-          data = await getExercises();
-        }
-        if (data) {
-          setExercises(data);
-        } else {
-          setExercises({
-            content: [],
-            totalPages: 1,
-            number: 0,
-            first: true,
-            last: true,
-          });
-          console.error("Failed to fetch exercises");
-        }
-      } else if (selectedSection === "usuarios") {
-        let data;
-        if (isSearching && searchQuery.trim()) {
-          data = await searchUsers(searchQuery, "USER");
-        } else {
-          data = await getUsers("USER");
-        }
-        if (data) {
-          setUsers(data);
-        } else {
-          setUsers({
-            content: [],
-            totalPages: 1,
-            number: 0,
-            first: true,
-            last: true,
-          });
-          console.error("Failed to fetch users");
-        }
-      } else if (selectedSection === "moderadores") {
-        let data;
-        if (isSearching && searchQuery.trim()) {
-          data = await searchUsers(searchQuery, "MOD");
-        } else {
-          data = await getUsers("MOD");
-        }
-        if (data) {
-          setUsers(data);
-        } else {
-          setUsers({
-            content: [],
-            totalPages: 1,
-            number: 0,
-            first: true,
-            last: true,
-          });
-          console.error("Failed to fetch moderators");
-        }
-      } else if (selectedSection === "administradores") {
-        let data;
-        if (isSearching && searchQuery.trim()) {
-          data = await searchUsers(searchQuery, "ADMIN");
-        } else {
-          data = await getUsers("ADMIN");
-        }
-        if (data) {
-          setUsers(data);
-        } else {
-          setUsers({
-            content: [],
-            totalPages: 1,
-            number: 0,
-            first: true,
-            last: true,
-          });
-          console.error("Failed to fetch administrators");
-        }
-      } else if (selectedSection === "bans") {
-        let data;
-        if (isSearching && searchQuery.trim()) {
-          data = await searchBans(searchQuery);
-        } else {
-          data = await getBans();
-        }
-        if (data) {
-          setBans(data);
-        } else {
-          setBans({
-            content: [],
-            totalPages: 1,
-            number: 0,
-            first: true,
-            last: true,
-          });
-          console.error("Failed to fetch bans");
-        }
-      } else if (selectedSection === "timeouts") {
-        let data;
-        if (isSearching && searchQuery.trim()) {
-          data = await searchTimeouts(searchQuery);
-        } else {
-          data = await getTimeouts();
-        }
-        if (data) {
-          setTimeouts(data);
-        } else {
-          setTimeouts({
-            content: [],
-            totalPages: 1,
-            number: 0,
-            first: true,
-            last: true,
-          });
-          console.error("Failed to fetch timeouts");
-        }
-      } else if (selectedSection === "listas") {
-        let data;
-        if (isSearching && searchQuery.trim()) {
-          data = await searchLists(searchQuery);
-        } else {
-          data = await getLists();
-        }
-        if (data) {
-          setLists(data);
-        } else {
-          setLists({
-            content: [],
-            totalPages: 1,
-            number: 0,
-            first: true,
-            last: true,
-          });
-          console.error("Failed to fetch lists");
-        }
-      }
-    };
-    fetchData();
-  }, [
-    page,
-    selectedSection,
-    getExercises,
-    getLists,
-    getUsers,
-    getBans,
-    getTimeouts,
-    searchUsers,
-    searchBans,
-    searchTimeouts,
-    searchExercises,
-    searchLists,
-    searchQuery,
-    isSearching,
-  ]);
+  // ---------- Ações ----------
+  const verifyExercise = async (id) => {
+    const result = await fetchJson(`/exercises/${id}/verify`, { method: "PATCH" });
+    if (result !== null) alert("Exercício verificado com sucesso");
+    return result;
+  };
 
   const banUser = async (username) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    const reason = prompt("Please enter the ban reason:");
+    const reason = prompt("Por favor, insira o motivo do banimento:");
     if (!reason) {
-      console.error("Ban reason is required");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${baseUrl}/users/${username}/ban`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ banReason: reason }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const message = await response.text();
-      alert(message);
-      return message;
-    } catch (err) {
-      console.error(err);
+      console.error("O motivo do banimento é obrigatório");
       return null;
     }
+    return await fetchJson(`/users/${username}/ban`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ banReason: reason }),
+    });
   };
 
   const unbanUser = async (username) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    try {
-      const response = await fetch(`${baseUrl}/users/${username}/unban`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const message = await response.text();
-      alert(message);
-      return message;
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
+    return await fetchJson(`/users/${username}/unban`, { method: "PATCH" });
   };
 
   const timeoutUser = async (username) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    const reason = prompt("Please enter the timeout reason:");
+    const reason = prompt("Por favor, insira o motivo do timeout:");
     if (!reason) {
-      console.error("Timeout reason is required");
-      return;
-    }
-
-    const durationInput = prompt(
-      "Please enter the timeout duration in minutes:"
-    );
-    if (!durationInput) {
-      console.error("Timeout duration is required");
-      return;
-    }
-
-    const durationMinutes = parseInt(durationInput);
-    if (isNaN(durationMinutes) || durationMinutes <= 0) {
-      alert("Please enter a valid positive number for duration");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${baseUrl}/users/${username}/timeout`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reason: reason,
-          durationMinutes: durationMinutes,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const message = await response.text();
-      alert(message);
-      return message;
-    } catch (err) {
-      console.error(err);
+      console.error("O motivo do timeout é obrigatório");
       return null;
     }
+    const durationInput = prompt("Por favor, insira a duração do timeout em minutos:");
+    if (!durationInput) {
+      console.error("A duração do timeout é obrigatória");
+      return null;
+    }
+    const durationMinutes = parseInt(durationInput, 10);
+    if (isNaN(durationMinutes) || durationMinutes <= 0) {
+      alert("Por favor, insira um número válido e positivo para a duração");
+      return null;
+    }
+    return await fetchJson(`/users/${username}/timeout`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason, durationMinutes }),
+    });
   };
 
   const untimeoutUser = async (username) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    return await fetchJson(`/users/${username}/untimeout`, { method: "PATCH" });
+  };
 
-    try {
-      const response = await fetch(`${baseUrl}/users/${username}/untimeout`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+  const deleteExercise = async (id) => {
+    const sure = confirm("Tem certeza que deseja deletar este exercício?");
+    if (!sure) return false;
+    const res = await fetchJson(`/exercises/${id}`, { method: "DELETE" });
+    return res !== null;
+  };
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const message = await response.text();
-      alert(message);
-      return message;
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
+  const deleteList = async (id) => {
+    const sure = confirm("Tem certeza que deseja deletar esta lista?");
+    if (!sure) return false;
+    const res = await fetchJson(`/lists/${id}`, { method: "DELETE" });
+    return res !== null;
   };
 
   const changeUserRole = async (username, newRole) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    try {
-      const response = await fetch(
-        `${baseUrl}/users/${username}/role?role=${newRole}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      alert(`Role changed successfully for ${username} to ${newRole}`);
+    const res = await fetchJson(`/users/${username}/role?role=${newRole}`, { method: "PATCH" });
+    if (res !== null) {
+      alert(`Papel alterado com sucesso de ${username} para ${newRole}`);
       return true;
-    } catch (err) {
-      console.error(err);
-      alert(`Failed to change role: ${err.message}`);
+    } else {
+      alert("Falha ao alterar papel");
       return false;
     }
   };
 
-  const handleRoleChange = (user) => {
-    setSelectedUser(user);
-    setSelectedRole("");
-    setRoleDialogOpen(true);
-  };
+  // ---------- Carregamento dos dados ----------
+  useEffect(() => {
+    let active = true;
 
-  const handleRoleConfirm = async () => {
-    if (selectedUser && selectedRole) {
-      const result = await changeUserRole(selectedUser.username, selectedRole);
-      if (result) {
-        if (selectedSection === "usuarios") {
-          const data = await getUsers("USER");
-          if (data) setUsers(data);
-        } else if (selectedSection === "moderadores") {
-          const data = await getUsers("MOD");
-          if (data) setUsers(data);
-        } else if (selectedSection === "administradores") {
-          const data = await getUsers("ADMIN");
-          if (data) setUsers(data);
-        }
+    const load = async () => {
+      const searching = isSearching && searchQuery.trim().length > 0;
+
+      if (selectedSection === SECTIONS.EXERCISES) {
+        const endpoint = searching
+          ? `/exercises/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&size=9`
+          : `/exercises?page=${page - 1}&size=9`;
+        const data = await fetchJson(endpoint);
+        if (!active) return;
+        setExercises(data || EMPTY_PAGE);
+        return;
       }
-    }
-    setRoleDialogOpen(false);
-    setSelectedUser(null);
-    setSelectedRole("");
-  };
 
-  const getRoleOptions = () => {
-    if (selectedSection === "usuarios") {
-      return ["MOD", "ADMIN"];
-    } else if (selectedSection === "moderadores") {
-      return ["USER", "ADMIN"];
-    } else if (selectedSection === "administradores") {
-      return ["USER", "MOD"];
+      if (selectedSection === SECTIONS.LISTS) {
+        const endpoint = searching
+          ? `/lists/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&size=9`
+          : `/lists?page=${page - 1}&size=9`;
+        const data = await fetchJson(endpoint);
+        if (!active) return;
+        setLists(data || EMPTY_PAGE);
+        return;
+      }
+
+      if ([SECTIONS.USERS, SECTIONS.MODS, SECTIONS.ADMINS].includes(selectedSection)) {
+        const roleParam =
+          selectedSection === SECTIONS.USERS ? "USER" : selectedSection === SECTIONS.MODS ? "MOD" : "ADMIN";
+        const endpoint = searching
+          ? `/users/search?q=${encodeURIComponent(searchQuery)}&role=${roleParam}&page=${page - 1}&size=9`
+          : `/users?page=${page - 1}&size=9&role=${roleParam}`;
+        const data = await fetchJson(endpoint);
+        if (!active) return;
+        setUsers(data || EMPTY_PAGE);
+        return;
+      }
+
+      if (selectedSection === SECTIONS.BANS) {
+        const endpoint = searching
+          ? `/users/bans/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&size=9`
+          : `/users/bans?page=${page - 1}&size=9&active=true`;
+        const data = await fetchJson(endpoint);
+        if (!active) return;
+        setBans(data || EMPTY_PAGE);
+        return;
+      }
+
+      if (selectedSection === SECTIONS.TIMEOUTS) {
+        const endpoint = searching
+          ? `/users/timeouts/search?q=${encodeURIComponent(searchQuery)}&page=${page - 1}&size=9`
+          : `/users/timeouts?page=${page - 1}&size=9&active=true`;
+        const data = await fetchJson(endpoint);
+        if (!active) return;
+        setTimeouts(data || EMPTY_PAGE);
+        return;
+      }
+    };
+
+    load();
+
+    return () => {
+      active = false; 
+    };
+  }, [selectedSection, page, searchQuery, isSearching, baseUrl]);
+
+  // ---------- Helpers de UI / paginação ----------
+  const getCurrentPageData = () => {
+    switch (selectedSection) {
+      case SECTIONS.EXERCISES:
+        return exercises;
+      case SECTIONS.BANS:
+        return bans;
+      case SECTIONS.TIMEOUTS:
+        return timeouts;
+      case SECTIONS.LISTS:
+        return lists;
+      default:
+        return users;
     }
-    return [];
   };
 
   const handleNextPage = () => {
-    let currentData;
-    if (selectedSection === "exercicios") {
-      currentData = exercises;
-    } else if (selectedSection === "bans") {
-      currentData = bans;
-    } else if (selectedSection === "timeouts") {
-      currentData = timeouts;
-    } else if (selectedSection === "listas") {
-      currentData = lists;
-    } else {
-      currentData = users;
-    }
-
-    if (!currentData.last) {
-      setPage((prevPage) => prevPage + 1);
-    }
+    const current = getCurrentPageData();
+    if (!current.last) setPage((p) => p + 1);
   };
 
   const handlePreviousPage = () => {
-    let currentData;
-    if (selectedSection === "exercicios") {
-      currentData = exercises;
-    } else if (selectedSection === "bans") {
-      currentData = bans;
-    } else if (selectedSection === "timeouts") {
-      currentData = timeouts;
-    } else if (selectedSection === "listas") {
-      currentData = lists;
-    } else {
-      currentData = users;
-    }
-
-    if (!currentData.first) {
-      setPage((prevPage) => prevPage - 1);
-    }
+    const current = getCurrentPageData();
+    if (!current.first) setPage((p) => p - 1);
   };
 
   const handleSectionChange = (section) => {
-    if (!isSectionAllowed(section)) {
-      return; // Don't allow access to forbidden sections
-    }
+    if (!isSectionAllowed(section)) return;
     setSelectedSection(section);
     setPage(1);
     setSearchQuery("");
@@ -861,1096 +288,209 @@ function Dashboard() {
     setPage(1);
   };
 
+  // ---------- Role dialog ----------
+  const handleRoleChange = (user) => {
+    setSelectedUser(user);
+    setSelectedRole("");
+    setRoleDialogOpen(true);
+  };
+
+  const handleRoleConfirm = async () => {
+    if (selectedUser && selectedRole) {
+      const ok = await changeUserRole(selectedUser.username, selectedRole);
+      if (ok) {
+        // atualiza a lista de usuários conforme a seção atual
+        if (selectedSection === SECTIONS.USERS) {
+          const data = await fetchJson(`/users?page=${page - 1}&size=9&role=USER`);
+          setUsers(data || EMPTY_PAGE);
+        } else if (selectedSection === SECTIONS.MODS) {
+          const data = await fetchJson(`/users?page=${page - 1}&size=9&role=MOD`);
+          setUsers(data || EMPTY_PAGE);
+        } else if (selectedSection === SECTIONS.ADMINS) {
+          const data = await fetchJson(`/users?page=${page - 1}&size=9&role=ADMIN`);
+          setUsers(data || EMPTY_PAGE);
+        }
+      }
+    }
+    setRoleDialogOpen(false);
+    setSelectedUser(null);
+    setSelectedRole("");
+  };
+
+  const getRoleOptions = () => {
+    if (selectedSection === SECTIONS.USERS) return ["MOD", "ADMIN"];
+    if (selectedSection === SECTIONS.MODS) return ["USER", "ADMIN"];
+    if (selectedSection === SECTIONS.ADMINS) return ["USER", "MOD"];
+    return [];
+  };
+
+  // ---------- Renderização condicional do conteúdo ----------
   const renderContent = () => {
     switch (selectedSection) {
-      case "usuarios":
-      case "moderadores":
-      case "administradores":
+      case SECTIONS.USERS:
+      case SECTIONS.MODS:
+      case SECTIONS.ADMINS:
         return (
-          <Box sx={{}}>
-            {/* Search Input */}
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                fullWidth
-                placeholder={`Buscar usuários por nome de usuário ou email...`}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value.trim()) {
-                    setIsSearching(true);
-                    setPage(1);
-                  } else {
-                    setIsSearching(false);
-                    setPage(1);
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery && (
-                    <InputAdornment position="end">
-                      <Button
-                        onClick={handleClearSearch}
-                        sx={{ minWidth: "auto", p: 1 }}
-                      >
-                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                      </Button>
-                    </InputAdornment>
-                  ),
-                  sx: {
-                    color: "white",
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.3)",
-                    },
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.5)",
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "primary.main",
-                    },
-                  },
-                }}
-                sx={{
-                  "& .MuiInputBase-input::placeholder": {
-                    color: "rgba(255, 255, 255, 0.5)",
-                    opacity: 1,
-                  },
-                }}
-              />
-            </Box>
-
-            {Array.isArray(users.content) && users.content.length > 0 ? (
-              <>
-                <TableContainer
-                  component={Paper}
-                  sx={{ bgcolor: "#1e1e2e", mb: 3 }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: "primary.secondary" }}>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Username
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Email
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Role
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Daily Streak
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {users.content.map((user) => (
-                        <TableRow
-                          key={user.username}
-                          sx={{
-                            "&:hover": { bgcolor: "#2a2a3e" },
-                            bgcolor: "card.primary",
-                          }}
-                        >
-                          <TableCell sx={{ color: "white" }}>
-                            {user.username}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {user.email}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={user.role}
-                              size="small"
-                              sx={{
-                                bgcolor:
-                                  user.role === "ADMIN"
-                                    ? "#ff7043"
-                                    : user.role === "MOD"
-                                    ? "#66bb6a"
-                                    : "#42a5f5",
-                                color: "white",
-                                fontWeight: "bold",
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {user.dailyStreak}
-                          </TableCell>
-                          <TableCell>
-                            <Box
-                              sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}
-                            >
-                              {(user.role === "USER" ||
-                                user.role === "MOD") && (
-                                <>
-                                  {/* Ban button - only for ADMINs */}
-                                  {isActionAllowed("ban") && (
-                                    <Button
-                                      variant="contained"
-                                      size="small"
-                                      onClick={() => {
-                                        banUser(user.username)
-                                          .then((result) => {
-                                            if (result) {
-                                              if (
-                                                isSearching &&
-                                                searchQuery.trim()
-                                              ) {
-                                                return searchUsers(searchQuery);
-                                              } else if (
-                                                selectedSection === "usuarios"
-                                              ) {
-                                                return getUsers("USER");
-                                              } else if (
-                                                selectedSection ===
-                                                "moderadores"
-                                              ) {
-                                                return getUsers("MOD");
-                                              } else if (
-                                                selectedSection ===
-                                                "administradores"
-                                              ) {
-                                                return getUsers("ADMIN");
-                                              }
-                                            }
-                                          })
-                                          .then((data) => {
-                                            if (data) setUsers(data);
-                                          });
-                                      }}
-                                    >
-                                      Ban
-                                    </Button>
-                                  )}
-                                  {/* Timeout button - for both ADMINs and MODs */}
-                                  {isActionAllowed("timeout") && (
-                                    <Button
-                                      variant="contained"
-                                      size="small"
-                                      onClick={() => {
-                                        timeoutUser(user.username)
-                                          .then((result) => {
-                                            if (result) {
-                                              if (
-                                                isSearching &&
-                                                searchQuery.trim()
-                                              ) {
-                                                return searchUsers(searchQuery);
-                                              } else if (
-                                                selectedSection === "usuarios"
-                                              ) {
-                                                return getUsers("USER");
-                                              } else if (
-                                                selectedSection ===
-                                                "moderadores"
-                                              ) {
-                                                return getUsers("MOD");
-                                              } else if (
-                                                selectedSection ===
-                                                "administradores"
-                                              ) {
-                                                return getUsers("ADMIN");
-                                              }
-                                            }
-                                          })
-                                          .then((data) => {
-                                            if (data) setUsers(data);
-                                          });
-                                      }}
-                                    >
-                                      Timeout
-                                    </Button>
-                                  )}
-                                </>
-                              )}
-                              {/* Role change button - only for ADMINs */}
-                              {isActionAllowed("changeRole") && (
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  onClick={() => handleRoleChange(user)}
-                                >
-                                  Change Role
-                                </Button>
-                              )}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                {/* Pagination Controls */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    mt: 4,
-                    gap: 2,
-                  }}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={handlePreviousPage}
-                    disabled={users.first}
-                  >
-                    <ArrowBackIosNewIcon />
-                  </Button>
-                  <Typography sx={{ color: "white" }}>
-                    Página {users.number + 1} de {users.totalPages}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={handleNextPage}
-                    disabled={users.last}
-                  >
-                    <ArrowForwardIosIcon />
-                  </Button>
-                </Box>
-              </>
-            ) : (
-              <Typography variant="body2" sx={{ color: "white" }}>
-                Nenhum{" "}
-                {selectedSection === "usuarios"
-                  ? "usuário"
-                  : selectedSection === "moderadores"
-                  ? "moderador"
-                  : "administrador"}{" "}
-                encontrado.
-              </Typography>
-            )}
-          </Box>
+          <TableUsers
+            users={users}
+            isActionAllowed={isActionAllowed}
+            banUser={banUser}
+            timeoutUser={timeoutUser}
+            handleRoleChange={handleRoleChange}
+            isSearching={isSearching}
+            searchQuery={searchQuery}
+            selectedSection={selectedSection}
+            setUsers={setUsers}
+            setSearchQuery={setSearchQuery}
+            setIsSearching={setIsSearching}
+            setPage={setPage}
+            handleClearSearch={handleClearSearch}
+            handlePreviousPage={handlePreviousPage}
+            handleNextPage={handleNextPage}
+            getUsers={
+              async (role) => {
+                const data = await fetchJson(`/users?page=${page - 1}&size=9&role=${role}`);
+                if (data) setUsers(data);
+                return data;
+              }
+            }
+            searchUsers={
+              async (query) => {
+                const data = await fetchJson(`/users/search?q=${encodeURIComponent(query)}&page=${page - 1}&size=9`);
+                if (data) setUsers(data);
+                return data;
+              }
+            }
+          />
         );
-      case "bans":
+
+      case SECTIONS.BANS:
         return (
-          <Box sx={{}}>
-            {/* Search Input */}
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                fullWidth
-                placeholder={`Buscar usuários banidos por nome de usuário ou email...`}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value.trim()) {
-                    setIsSearching(true);
-                    setPage(1);
-                  } else {
-                    setIsSearching(false);
-                    setPage(1);
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery && (
-                    <InputAdornment position="end">
-                      <Button
-                        onClick={handleClearSearch}
-                        sx={{ minWidth: "auto", p: 1 }}
-                      >
-                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                      </Button>
-                    </InputAdornment>
-                  ),
-                  sx: {
-                    color: "white",
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.3)",
-                    },
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.5)",
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "primary.main",
-                    },
-                  },
-                }}
-                sx={{
-                  "& .MuiInputBase-input::placeholder": {
-                    color: "rgba(255, 255, 255, 0.5)",
-                    opacity: 1,
-                  },
-                }}
-              />
-            </Box>
-
-            {Array.isArray(bans.content) && bans.content.length > 0 ? (
-              <>
-                <TableContainer
-                  component={Paper}
-                  sx={{ bgcolor: "#1e1e2e", mb: 3 }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: "primary.secondary" }}>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Username
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Email
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Reason
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Admin
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Date
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {bans.content.map((ban) => (
-                        <TableRow
-                          key={ban.id}
-                          sx={{
-                            "&:hover": { bgcolor: "#2a2a3e" },
-                            bgcolor: "card.primary",
-                          }}
-                        >
-                          <TableCell sx={{ color: "white" }}>
-                            {ban.bannedUsername}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {ban.bannedUserEmail}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {ban.banReason}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {ban.adminUsername}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {new Date(ban.banDate).toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={() => {
-                                unbanUser(ban.bannedUsername)
-                                  .then(() => getBans())
-                                  .then((data) => {
-                                    if (data) setBans(data);
-                                  });
-                              }}
-                            >
-                              Desbanir
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                {/* Pagination Controls */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    mt: 4,
-                    gap: 2,
-                  }}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={handlePreviousPage}
-                    disabled={bans.first}
-                  >
-                    <ArrowBackIosNewIcon />
-                  </Button>
-                  <Typography sx={{ color: "white" }}>
-                    Página {bans.number + 1} de {bans.totalPages}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={handleNextPage}
-                    disabled={bans.last}
-                  >
-                    <ArrowForwardIosIcon />
-                  </Button>
-                </Box>
-              </>
-            ) : (
-              <Typography variant="body2" sx={{ color: "white" }}>
-                Nenhum ban ativo encontrado.
-              </Typography>
-            )}
-          </Box>
+          <TableBans
+            bans={bans}
+            unbanUser={unbanUser}
+            getBans={async () => {
+              const data = await fetchJson(`/users/bans?page=${page - 1}&size=9&active=true`);
+              if (data) setBans(data);
+              return data;
+            }}
+            setBans={setBans}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            setIsSearching={setIsSearching}
+            page={page}
+            setPage={setPage}
+            handleClearSearch={handleClearSearch}
+            handleNextPage={handleNextPage}
+            handlePreviousPage={handlePreviousPage}
+          />
         );
-      case "timeouts":
+
+      case SECTIONS.TIMEOUTS:
         return (
-          <Box sx={{}}>
-            {/* Search Input */}
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                fullWidth
-                placeholder={`Buscar usuários com timeout por nome de usuário ou email...`}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value.trim()) {
-                    setIsSearching(true);
-                    setPage(1);
-                  } else {
-                    setIsSearching(false);
-                    setPage(1);
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery && (
-                    <InputAdornment position="end">
-                      <Button
-                        onClick={handleClearSearch}
-                        sx={{ minWidth: "auto", p: 1 }}
-                      >
-                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                      </Button>
-                    </InputAdornment>
-                  ),
-                  sx: {
-                    color: "white",
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.3)",
-                    },
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.5)",
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "primary.main",
-                    },
-                  },
-                }}
-                sx={{
-                  "& .MuiInputBase-input::placeholder": {
-                    color: "rgba(255, 255, 255, 0.5)",
-                    opacity: 1,
-                  },
-                }}
-              />
-            </Box>
-
-            {Array.isArray(timeouts.content) && timeouts.content.length > 0 ? (
-              <>
-                <TableContainer
-                  component={Paper}
-                  sx={{ bgcolor: "#1e1e2e", mb: 3 }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: "primary.secondary" }}>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Username
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Email
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Reason
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Admin
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Duration (min)
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Start Date
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          End Date
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {timeouts.content.map((timeout) => (
-                        <TableRow
-                          key={timeout.id}
-                          sx={{
-                            "&:hover": { bgcolor: "#2a2a3e" },
-                            bgcolor: "card.primary",
-                          }}
-                        >
-                          <TableCell sx={{ color: "white" }}>
-                            {timeout.timedOutUsername}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {timeout.timedOutUserEmail}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {timeout.reason}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {timeout.adminUsername}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {timeout.durationMinutes}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {new Date(timeout.timeoutDate).toLocaleString()}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {timeout.timeoutEndDate
-                              ? new Date(
-                                  timeout.timeoutEndDate
-                                ).toLocaleString()
-                              : "N/A"}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={() => {
-                                untimeoutUser(timeout.timedOutUsername)
-                                  .then(() => getTimeouts())
-                                  .then((data) => {
-                                    if (data) setTimeouts(data);
-                                  });
-                              }}
-                            >
-                              Remover Timeout
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                {/* Pagination Controls */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    mt: 4,
-                    gap: 2,
-                  }}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={handlePreviousPage}
-                    disabled={timeouts.first}
-                  >
-                    <ArrowBackIosNewIcon />
-                  </Button>
-                  <Typography sx={{ color: "white" }}>
-                    Página {timeouts.number + 1} de {timeouts.totalPages}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={handleNextPage}
-                    disabled={timeouts.last}
-                  >
-                    <ArrowForwardIosIcon />
-                  </Button>
-                </Box>
-              </>
-            ) : (
-              <Typography variant="body2" sx={{ color: "white" }}>
-                Nenhum timeout ativo encontrado.
-              </Typography>
-            )}
-          </Box>
+          <TableTimeouts
+            timeouts={timeouts}
+            untimeoutUser={untimeoutUser}
+            getTimeouts={async () => {
+              const data = await fetchJson(`/users/timeouts?page=${page - 1}&size=9&active=true`);
+              if (data) setTimeouts(data);
+              return data;
+            }}
+            setTimeouts={setTimeouts}
+            setSearchQuery={setSearchQuery}
+            setIsSearching={setIsSearching}
+            setPage={setPage}
+            searchQuery={searchQuery}
+            handleClearSearch={handleClearSearch}
+            handlePreviousPage={handlePreviousPage}
+            handleNextPage={handleNextPage}
+          />
         );
-      case "exercicios":
+
+      case SECTIONS.EXERCISES:
         return (
-          <Box sx={{}}>
-            {/* Search Input */}
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                fullWidth
-                placeholder={`Buscar exercícios por título...`}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value.trim()) {
-                    setIsSearching(true);
-                    setPage(1);
-                  } else {
-                    setIsSearching(false);
-                    setPage(1);
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery && (
-                    <InputAdornment position="end">
-                      <Button
-                        onClick={handleClearSearch}
-                        sx={{ minWidth: "auto", p: 1 }}
-                      >
-                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                      </Button>
-                    </InputAdornment>
-                  ),
-                  sx: {
-                    color: "white",
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.3)",
-                    },
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.5)",
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "primary.main",
-                    },
-                  },
-                }}
-                sx={{
-                  "& .MuiInputBase-input::placeholder": {
-                    color: "rgba(255, 255, 255, 0.5)",
-                    opacity: 1,
-                  },
-                }}
-              />
-            </Box>
-
-            {Array.isArray(exercises.content) &&
-            exercises.content.length > 0 ? (
-              <>
-                <TableContainer
-                  component={Paper}
-                  sx={{ bgcolor: "#1e1e2e", mb: 3 }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: "primary.secondary" }}>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          ID
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Title
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Description
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Status
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {exercises.content.map((exercise) => (
-                        <TableRow
-                          key={exercise.id}
-                          sx={{
-                            "&:hover": { bgcolor: "#2a2a3e" },
-                            bgcolor: "card.primary",
-                          }}
-                        >
-                          <TableCell sx={{ color: "white" }}>
-                            {exercise.id}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {exercise.title}
-                          </TableCell>
-                          <TableCell sx={{ color: "white", maxWidth: "300px" }}>
-                            {exercise.description.length > 100
-                              ? `${exercise.description.substring(0, 100)}...`
-                              : exercise.description}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={
-                                exercise.verified
-                                  ? "Verificado"
-                                  : "Não verificado"
-                              }
-                              size="small"
-                              sx={{
-                                bgcolor: exercise.verified
-                                  ? "#66bb6a"
-                                  : "#ff7043",
-                                color: "white",
-                                fontWeight: "bold",
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: "flex", gap: 1 }}>
-                              {/* Delete button - only for ADMINs */}
-                              {isActionAllowed("delete") && (
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  onClick={() =>
-                                    deleteExercise(exercise.id).then(
-                                      (success) => {
-                                        if (success) {
-                                          setExercises((prev) => ({
-                                            ...prev,
-                                            content: prev.content.filter(
-                                              (ex) => ex.id !== exercise.id
-                                            ),
-                                          }));
-                                        }
-                                      }
-                                    )
-                                  }
-                                >
-                                  <DeleteIcon />
-                                </Button>
-                              )}
-                              {/* Verify button - for both ADMINs and MODs */}
-                              {isActionAllowed("verify") && (
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  disabled={exercise.verified}
-                                  onClick={() => {
-                                    verifyExercise(exercise.id)
-                                      .then(() => {
-                                        if (isSearching && searchQuery.trim()) {
-                                          return searchExercises(searchQuery);
-                                        } else {
-                                          return getExercises();
-                                        }
-                                      })
-                                      .then((data) => {
-                                        if (data) setExercises(data);
-                                      });
-                                  }}
-                                >
-                                  <VerifiedUserRounded />
-                                </Button>
-                              )}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                {/* Pagination Controls */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    mt: 4,
-                    gap: 2,
-                  }}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={handlePreviousPage}
-                    disabled={exercises.first}
-                  >
-                    <ArrowBackIosNewIcon />
-                  </Button>
-                  <Typography sx={{ color: "white" }}>
-                    Página {exercises.number + 1} de {exercises.totalPages}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={handleNextPage}
-                    disabled={exercises.last}
-                  >
-                    <ArrowForwardIosIcon />
-                  </Button>
-                </Box>
-              </>
-            ) : (
-              <Typography variant="body2" sx={{ color: "white" }}>
-                Nenhum exercício encontrado.
-              </Typography>
-            )}
-          </Box>
+          <TableExercises
+            exercises={exercises}
+            isActionAllowed={isActionAllowed}
+            verifyExercise={verifyExercise}
+            isSearching={isSearching}
+            getExercises={async () => {
+              const data = await fetchJson(`/exercises?page=${page - 1}&size=9`);
+              if (data) setExercises(data);
+              return data;
+            }}
+            setExercises={setExercises}
+            deleteExercise={deleteExercise}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            setIsSearching={setIsSearching}
+            setPage={setPage}
+            handlePreviousPage={handlePreviousPage}
+            handleNextPage={handleNextPage}
+            handleClearSearch={handleClearSearch}
+          />
         );
-      case "listas":
+
+      case SECTIONS.LISTS:
         return (
-          <Box sx={{}}>
-            {/* Search Input */}
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                fullWidth
-                placeholder={`Buscar listas por nome...`}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value.trim()) {
-                    setIsSearching(true);
-                    setPage(1);
-                  } else {
-                    setIsSearching(false);
-                    setPage(1);
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery && (
-                    <InputAdornment position="end">
-                      <Button
-                        onClick={handleClearSearch}
-                        sx={{ minWidth: "auto", p: 1 }}
-                      >
-                        <ClearIcon sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
-                      </Button>
-                    </InputAdornment>
-                  ),
-                  sx: {
-                    color: "white",
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.3)",
-                    },
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "rgba(255, 255, 255, 0.5)",
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "primary.main",
-                    },
-                  },
-                }}
-                sx={{
-                  "& .MuiInputBase-input::placeholder": {
-                    color: "rgba(255, 255, 255, 0.5)",
-                    opacity: 1,
-                  },
-                }}
-              />
-            </Box>
-
-            {Array.isArray(lists.content) && lists.content.length > 0 ? (
-              <>
-                <TableContainer
-                  component={Paper}
-                  sx={{ bgcolor: "#1e1e2e", mb: 3 }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: "primary.secondary" }}>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          ID
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Name
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Description
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Owner
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Exercises
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Created At
-                        </TableCell>
-                        <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                          Actions
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {lists.content.map((list) => (
-                        <TableRow
-                          key={list.id}
-                          sx={{
-                            "&:hover": { bgcolor: "#2a2a3e" },
-                            bgcolor: "card.primary",
-                          }}
-                        >
-                          <TableCell sx={{ color: "white" }}>
-                            {list.id}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {list.name}
-                          </TableCell>
-                          <TableCell sx={{ color: "white", maxWidth: "300px" }}>
-                            {list.description?.length > 100
-                              ? `${list.description.substring(0, 100)}...`
-                              : list.description}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {list.ownerUsername}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {Array.isArray(list.exercises)
-                              ? list.exercises.length
-                              : 0}
-                          </TableCell>
-                          <TableCell sx={{ color: "white" }}>
-                            {list.createdAt
-                              ? new Date(list.createdAt).toLocaleString()
-                              : ""}
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: "flex", gap: 1 }}>
-                              {isActionAllowed("delete") && (
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  onClick={() =>
-                                    deleteList(list.id).then((success) => {
-                                      if (success) {
-                                        setLists((prev) => ({
-                                          ...prev,
-                                          content: prev.content.filter(
-                                            (l) => l.id !== list.id
-                                          ),
-                                        }));
-                                      }
-                                    })
-                                  }
-                                >
-                                  <DeleteIcon />
-                                </Button>
-                              )}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                {/* Pagination Controls */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    mt: 4,
-                    gap: 2,
-                  }}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={handlePreviousPage}
-                    disabled={lists.first}
-                  >
-                    <ArrowBackIosNewIcon />
-                  </Button>
-                  <Typography sx={{ color: "white" }}>
-                    Página {lists.number + 1} de {lists.totalPages}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={handleNextPage}
-                    disabled={lists.last}
-                  >
-                    <ArrowForwardIosIcon />
-                  </Button>
-                </Box>
-              </>
-            ) : (
-              <Typography variant="body2" sx={{ color: "white" }}>
-                Nenhuma lista encontrada.
-              </Typography>
-            )}
-          </Box>
+          <TableLists
+            lists={lists}
+            isActionAllowed={isActionAllowed}
+            deleteList={deleteList}
+            setLists={setLists}
+            setIsSearching={setIsSearching}
+            setSearchQuery={setSearchQuery}
+            setPage={setPage}
+            searchQuery={searchQuery}
+            handleClearSearch={handleClearSearch}
+          />
         );
+
       default:
         return null;
     }
   };
 
+  // ---------- JSX  ----------
   return (
-    <Box
-      sx={{
-        display: "flex",
-        height: "90vh",
-        color: "white",
-        p: 4,
-      }}
-    >
+    <Box sx={{ display: "flex", height: "90vh", color: "white", marginTop: 6 }}>
+      
       {/* Sidebar */}
-      <Box
-        sx={{ width: 400, display: "flex", flexDirection: "column", gap: 4 }}
-      >
-        <Box sx={{ bgcolor: "primary.secondary", borderRadius: 2 }}>
+      <Box sx={{ width: 200, display: "flex", flexDirection: "column", gap: 4 }}>
+        <Box sx={{ bgcolor: "primary.secondary" }}>
           <Typography variant="h6" sx={{ p: 1.5 }}>
             Usuários
           </Typography>
-          <Box
-            sx={{
-              bgcolor: "card.primary",
-              p: 1,
-              borderBottomLeftRadius: 8,
-              borderBottomRightRadius: 8,
-            }}
-          >
+          <Box sx={{ bgcolor: "card.primary", p: 1 }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              {/* Usuários section - available to both ADMINs and MODs */}
-              {isSectionAllowed("usuarios") && (
+              {isSectionAllowed(SECTIONS.USERS) && (
                 <Button
-                  sx={{
-                    justifyContent: "flex-start",
-                    color:
-                      selectedSection === "usuarios" ? "card.main" : "white",
-                  }}
+                  sx={{ justifyContent: "flex-start", color: selectedSection === SECTIONS.USERS ? "card.main" : "white" }}
                   fullWidth
-                  onClick={() => handleSectionChange("usuarios")}
+                  onClick={() => handleSectionChange(SECTIONS.USERS)}
                 >
                   Usuários
                 </Button>
               )}
-              {/* Moderadores section - only for ADMINs */}
-              {isSectionAllowed("moderadores") && (
+
+              {isSectionAllowed(SECTIONS.MODS) && (
                 <Button
-                  sx={{
-                    justifyContent: "flex-start",
-                    color:
-                      selectedSection === "moderadores" ? "card.main" : "white",
-                  }}
+                  sx={{ justifyContent: "flex-start", color: selectedSection === SECTIONS.MODS ? "card.main" : "white" }}
                   fullWidth
-                  onClick={() => handleSectionChange("moderadores")}
+                  onClick={() => handleSectionChange(SECTIONS.MODS)}
                 >
                   Moderadores
                 </Button>
               )}
-              {/* Administradores section - only for ADMINs */}
-              {isSectionAllowed("administradores") && (
+
+              {isSectionAllowed(SECTIONS.ADMINS) && (
                 <Button
                   sx={{
                     justifyContent: "flex-start",
-                    color:
-                      selectedSection === "administradores"
-                        ? "card.main"
-                        : "white",
+                    color: selectedSection === SECTIONS.ADMINS ? "card.main" : "white",
                   }}
                   fullWidth
-                  onClick={() => handleSectionChange("administradores")}
+                  onClick={() => handleSectionChange(SECTIONS.ADMINS)}
                 >
                   Administradores
                 </Button>
@@ -1959,44 +499,29 @@ function Dashboard() {
           </Box>
         </Box>
 
-        {/* Moderação section - show only if user has access to any moderation features */}
-        {(isSectionAllowed("bans") || isSectionAllowed("timeouts")) && (
-          <Box sx={{ bgcolor: "primary.secondary", borderRadius: 2 }}>
+        {(isSectionAllowed(SECTIONS.BANS) || isSectionAllowed(SECTIONS.TIMEOUTS)) && (
+          <Box sx={{ bgcolor: "primary.secondary" }}>
             <Typography variant="h6" sx={{ p: 1.5 }}>
               Moderação
             </Typography>
-            <Box
-              sx={{
-                bgcolor: "card.primary",
-                p: 1,
-                borderBottomLeftRadius: 8,
-                borderBottomRightRadius: 8,
-                gap: 1,
-              }}
-            >
-              {/* Bans section - only for ADMINs */}
-              {isSectionAllowed("bans") && (
+            <Box sx={{ bgcolor: "card.primary", p: 1, gap: 1 }}>
+              {isSectionAllowed(SECTIONS.BANS) && (
                 <Button
-                  sx={{
-                    justifyContent: "flex-start",
-                    color: selectedSection === "bans" ? "card.main" : "white",
-                  }}
+                  sx={{ justifyContent: "flex-start", color: selectedSection === SECTIONS.BANS ? "card.main" : "white" }}
                   fullWidth
-                  onClick={() => handleSectionChange("bans")}
+                  onClick={() => handleSectionChange(SECTIONS.BANS)}
                 >
                   Bans
                 </Button>
               )}
-              {/* Timeouts section - available to both ADMINs and MODs */}
-              {isSectionAllowed("timeouts") && (
+              {isSectionAllowed(SECTIONS.TIMEOUTS) && (
                 <Button
                   sx={{
                     justifyContent: "flex-start",
-                    color:
-                      selectedSection === "timeouts" ? "card.main" : "white",
+                    color: selectedSection === SECTIONS.TIMEOUTS ? "card.main" : "white",
                   }}
                   fullWidth
-                  onClick={() => handleSectionChange("timeouts")}
+                  onClick={() => handleSectionChange(SECTIONS.TIMEOUTS)}
                 >
                   Timeouts
                 </Button>
@@ -2005,40 +530,28 @@ function Dashboard() {
           </Box>
         )}
 
-        {/* Exercícios section - available to both ADMINs and MODs */}
-        {isSectionAllowed("exercicios") && (
-          <Box sx={{ bgcolor: "primary.secondary", borderRadius: 2 }}>
+        {isSectionAllowed(SECTIONS.EXERCISES) && (
+          <Box sx={{ bgcolor: "primary.secondary" }}>
             <Typography variant="h6" sx={{ p: 1.5 }}>
               Exercícios
             </Typography>
-            <Box
-              sx={{
-                bgcolor: "card.primary",
-                p: 1,
-                borderBottomLeftRadius: 8,
-                borderBottomRightRadius: 8,
-              }}
-            >
+            <Box sx={{ bgcolor: "card.primary", p: 1 }}>
               <Button
                 sx={{
                   justifyContent: "flex-start",
-                  color:
-                    selectedSection === "exercicios" ? "card.main" : "white",
+                  color: selectedSection === SECTIONS.EXERCISES ? "card.main" : "white",
                   mb: 1,
                 }}
                 fullWidth
-                onClick={() => handleSectionChange("exercicios")}
+                onClick={() => handleSectionChange(SECTIONS.EXERCISES)}
               >
                 Exercícios
               </Button>
-              {isSectionAllowed("listas") && (
+              {isSectionAllowed(SECTIONS.LISTS) && (
                 <Button
-                  sx={{
-                    justifyContent: "flex-start",
-                    color: selectedSection === "listas" ? "card.main" : "white",
-                  }}
+                  sx={{ justifyContent: "flex-start", color: selectedSection === SECTIONS.LISTS ? "card.main" : "white" }}
                   fullWidth
-                  onClick={() => handleSectionChange("listas")}
+                  onClick={() => handleSectionChange(SECTIONS.LISTS)}
                 >
                   Listas
                 </Button>
@@ -2049,35 +562,27 @@ function Dashboard() {
       </Box>
 
       {/* Content */}
-      <Box sx={{ flex: 1, pl: 20, fontSize: "1rem" }}>{renderContent()}</Box>
+      <Box sx={{ flex: 1, pl: 5 }}>{renderContent()}</Box>
 
       {/* Role Change Dialog */}
       <Dialog open={roleDialogOpen} onClose={() => setRoleDialogOpen(false)}>
-        <DialogTitle>Change Role for {selectedUser?.username}</DialogTitle>
+        <DialogTitle>Muda papel de {selectedUser?.username}</DialogTitle>
         <DialogContent>
           <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Select New Role</InputLabel>
-            <Select
-              value={selectedRole}
-              label="Select New Role"
-              onChange={(e) => setSelectedRole(e.target.value)}
-            >
-              {getRoleOptions().map((role) => (
-                <MenuItem key={role} value={role}>
-                  {role}
+            <InputLabel>Selecione Novo Papel</InputLabel>
+            <Select value={selectedRole} label="Select New Role" onChange={(e) => setSelectedRole(e.target.value)}>
+              {getRoleOptions().map((r) => (
+                <MenuItem key={r} value={r}>
+                  {r}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRoleDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleRoleConfirm}
-            variant="contained"
-            disabled={!selectedRole}
-          >
-            Change Role
+          <Button onClick={() => setRoleDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={handleRoleConfirm} variant="contained" disabled={!selectedRole}>
+            Mudar Papel
           </Button>
         </DialogActions>
       </Dialog>

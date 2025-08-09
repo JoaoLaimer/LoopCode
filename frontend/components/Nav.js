@@ -19,8 +19,6 @@ import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../app/auth-guard';
 
-
-
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
   display: 'flex',           // Adicionado
@@ -59,23 +57,21 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 
 
 export default function Nav() {
-  
+
 
   const [anchorEl, setAnchorEl] = React.useState(null);
   const isMenuOpen = Boolean(anchorEl);
   const router = useRouter();
-  const { username } = useAuth();
+  const { username, role } = useAuth();
+  const isPrivileged = role === "ADMIN" || role === "MOD";
 
   const [searchTerm, setSearchTerm] = React.useState('');
 
   const handleKeyDown = (e) => {
-  if (e.key === 'Enter' && searchTerm.trim() !== '') {
-    router.push(`/?q=${encodeURIComponent(searchTerm.trim())}`, { shallow: true });
-  }
-};
-
-
-  
+    if (e.key === 'Enter' && searchTerm.trim() !== '') {
+      router.push(`/?q=${encodeURIComponent(searchTerm.trim())}`, { shallow: true });
+    }
+  };
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -108,6 +104,18 @@ export default function Nav() {
         Meu Perfil
       </MenuItem>
 
+
+        { (isPrivileged && (
+          <MenuItem
+            onClick={() => {
+              handleMenuClose();
+              router.push(`/dashboard`);
+            }}
+          >
+            Painel de Administração
+          </MenuItem>
+        ))}
+
       <MenuItem onClick={handleLogout}>Sair</MenuItem>
     </Menu>
   );
@@ -120,9 +128,9 @@ export default function Nav() {
         sx={{
           backgroundColor: 'background.main',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-          backdropFilter: 'blur(4px)', 
-          zIndex: (theme) => theme.zIndex.drawer + 1, 
-          padding: '0 16px', 
+          backdropFilter: 'blur(4px)',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          padding: '0 16px',
         }}
       >
 

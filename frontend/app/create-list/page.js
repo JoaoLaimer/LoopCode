@@ -169,7 +169,7 @@ export default function CreateList() {
   return (
     <Box sx={{
       width: '100%',
-      height: '88vh',
+      minHeight: '80vh',
       display: 'flex',
       overflow: 'hidden',
       marginTop: 6,
@@ -192,32 +192,27 @@ export default function CreateList() {
             fullWidth
             value={listaTitulo}
             onChange={(e) => setListaTitulo(e.target.value)}
-            variant="standard"
-            InputProps={{
-              sx: { fontSize: '1.25rem', textAlign: 'center' },
-            }}
-            inputProps={{ style: { textAlign: 'center' } }}
+            sx={{
+                mt: 2,
+                textarea: { color: "white" },
+                "& .MuiOutlinedInput-root": { bgcolor: "background.default" },
+              }}
             placeholder="Título da Lista"
           />
           <TextField
             fullWidth
             value={listaDescricao}
             onChange={(e) => setListaDescricao(e.target.value)}
-            variant="outlined"
             multiline
             minRows={3}
             placeholder="Descrição da Lista"
             sx={{
-              mt: 2,
-              borderRadius: 1,
-              "& .MuiInputBase-root": { color: '#fff' },
-              "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: '#ccc'
-              }
-            }}
-            InputLabelProps={{ shrink: true }}
+                mt: 2,
+                textarea: { color: "white" },
+                "& .MuiOutlinedInput-root": { bgcolor: "background.default" },
+              }}
           />
-
+          <Divider sx={{ my: 2, bgcolor: '#444' }} />
           <List>
             {lista.map((item) => (
               <ListItem

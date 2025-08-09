@@ -107,7 +107,7 @@ export default function PerfilUsuario({ params }) {
     }, [username, listPage]);
 
     return (
-        <Box className="p-8">
+        <Box className="pt-8">
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 6 }}>
                 {/* Avatar apenas com largura do conteúdo */}
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>

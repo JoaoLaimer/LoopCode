@@ -42,7 +42,7 @@ export default function ExercicioItem({
             justifyContent: "space-between",
           }}
         >
-          <IconButton size="small" onClick={onUpvote} disabled={true}>
+          <IconButton size="small" onClick={onUpvote} sx={{ color: exercicio?.userVote === 1 ? "primary.main" : "gray" }}>
             <ArrowDropUpIcon />
           </IconButton>
 
@@ -50,7 +50,7 @@ export default function ExercicioItem({
             {exercicio?.voteCount}
           </Typography>
 
-          <IconButton size="small" onClick={onDownvote} disabled={true}>
+          <IconButton size="small" onClick={onDownvote} sx={{ color: exercicio?.userVote === -1 ? "primary.main" : "gray" }}>
             <ArrowDropDownIcon />
           </IconButton>
         </Box>

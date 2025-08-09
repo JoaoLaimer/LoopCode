@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
           <AuthGuard>
             <NavWrapper />
             <SpeedDial />
-            <Container maxWidth="xl" sx={{ mt: 4 }}>
+            <Container maxWidth="lg" sx={{ mt: 4 }}>
               {children}
             </Container>
           </AuthGuard>

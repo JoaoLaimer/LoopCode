@@ -113,16 +113,6 @@ public class ExerciseService {
             int page,
             int size) {
 
-        // Sort.Direction sortDirection = "desc".equalsIgnoreCase(order) ?
-        // Sort.Direction.DESC : Sort.Direction.ASC;
-        // String sortProperty = (sortBy != null && !sortBy.isEmpty() &&
-        // !"votes".equalsIgnoreCase(sortBy)) ? sortBy
-        // : "createdAt";
-
-        // Sort sort = Sort.by(sortDirection, sortProperty);
-
-        // PageRequest pageable = PageRequest.of(page, size, sort);
-
         Specification<Exercise> spec = Specification.where(null);
         if (language != null && !language.isBlank() && !"all".equalsIgnoreCase(language)) {
             spec = spec.and(ExerciseSpecifications.hasLanguage(language));
@@ -130,9 +120,7 @@ public class ExerciseService {
         if (difficulty != null && !difficulty.isBlank()) {
             spec = spec.and(ExerciseSpecifications.hasDifficulty(difficulty));
         }
-
-        // Specification<Exercise> spec = Specification.allOf(byLanguage, byDifficulty);
-
+        
         if (!"votes".equalsIgnoreCase(sortBy)) {
             Sort.Direction dir = "desc".equalsIgnoreCase(order) ? Sort.Direction.DESC : Sort.Direction.ASC;
             Sort sort = Sort.by(dir, sortBy != null ? sortBy : "createdAt");

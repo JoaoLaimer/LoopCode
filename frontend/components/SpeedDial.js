@@ -20,8 +20,6 @@ export default function CustomSpeedDial() {
     return null;
   }
 
-  const isPrivileged = role === "ADMIN" || role === "MOD";
-
   return (
     <SpeedDial
       ariaLabel="Menu de ações"
@@ -51,13 +49,6 @@ export default function CustomSpeedDial() {
         onClick={() => router.push("/create-exercise")}
       />
 
-      {isPrivileged && (
-        <SpeedDialAction
-          icon={<DashboardIcon />}
-          tooltipTitle="Painel de Administração"
-          onClick={() => router.push("/dashboard")}
-        />
-      )}
     </SpeedDial>
   );
 }
