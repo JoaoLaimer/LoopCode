@@ -81,7 +81,7 @@ export default function SearchPage() {
   return (
     <Box className="py-5">
       <Typography variant="h5" component="h2">
-        Resultados da busca para: "{q}"
+        Resultados da busca para: {q}
       </Typography>
 
       {/* Exercícios */}

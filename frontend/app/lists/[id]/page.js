@@ -5,9 +5,12 @@ import {
   Typography,
   Box,
   CircularProgress,
-  List,
+  Stack,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import HomeExerciseItem from '@/components/HomeExerciseItem';
+
+
 export default function ListPage({ params }) {
   const actualParams = React.use(params);
   const { id, username } = actualParams;
@@ -27,7 +30,7 @@ export default function ListPage({ params }) {
       },
     });
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      router.push('/404');
     }
     const data = await response.json();
     return data;
@@ -83,58 +86,11 @@ export default function ListPage({ params }) {
             </Typography>
 
             {list.exercises && list.exercises.length > 0 ? (
-              <List>
+              <Stack spacing={1}>
                 {list.exercises.map((exercise) => (
-                  <Box
-                    key={exercise.id}
-                    onClick={() => router.push(`/exercises/${exercise.id}`)}
-                    role="button"
-                    tabIndex={0}
-                    sx={{
-                      bgcolor: "card.primary",
-                      p: 2,
-                      borderRadius: 2,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 0.5,
-                      width: "100%",
-                      cursor: "pointer",
-                      transition: "all 0.1s ease-in-out",
-                      marginBottom: 1,
-                      "&:hover": {
-                        boxShadow: 6,
-                        bgcolor: "primary.dark",
-                      },
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      height: 110,
-                    }}
-                  >
-                    <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "white" }}>
-                      {exercise.title}
-                    </Typography>
-
-                    <Typography variant="body2" color="gray">
-                      Criado por{" "}
-                      {exercise ? (
-                        <a
-                          href={`/users/${exercise.createdBy.username}`}
-                          style={{ color: "#8B5CF6", textDecoration: "none", fontWeight: "bold" }}
-                        >
-                          {exercise.createdBy.username}
-                        </a>
-                      ) : (
-                        "Carregando..."
-                      )}
-                    </Typography>
-
-                    <Typography variant="body2" color="gray">
-                      {exercise.description?.length > 120
-                        ? exercise.description.slice(0, 120) + '...'
-                        : exercise.description}
-                    </Typography>
-                  </Box>
+                  <HomeExerciseItem key={exercise.id} exercise={exercise} />
                 ))}
-              </List>
+              </Stack>
             ) : (
               <Typography variant="body1" mt={2}>
                 Nenhum exercício nesta lista.
