@@ -2,7 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
-import { Box, Typography, Button, Chip, Snackbar, Alert } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Chip,
+  Snackbar,
+  Alert,
+  Tooltip,
+} from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import CodeIcon from "@mui/icons-material/Code";
 import CheckIcon from "@mui/icons-material/Check";
@@ -447,20 +455,26 @@ export default function ExercisePage({ params }) {
                 Code
               </Typography>
             </Box>
-            <Chip
-              size="small"
-              icon={
-                exercise?.verified ? <VerifiedUserRounded /> : <GppBadRounded />
-              }
-              label={exercise?.verified ? "Verificado" : "Não verificado"}
-              sx={{
-                bgcolor: exercise?.verified ? "success.main" : "error.main",
-                fontSize: "0.75rem",
-                paddingLeft: 0.3,
-                paddingRight: 0.3,
-                marginRight: 0,
-              }}
-            />
+            <Tooltip
+              title={exercise?.verified ? "Exercício verificado" : null}
+              placement="top"
+            >
+              <Chip
+                icon={exercise?.verified ? <VerifiedUserRounded /> : null}
+                sx={{
+                  backgroundColor: "transparent",
+                  paddingLeft: 0,
+                  paddingRight: 0,
+                  mt: -1,
+                  mr: -3,
+                  ".MuiChip-icon": { fontSize: 22 },
+                  minHeight: 0,
+                  minWidth: 0,
+                  lineHeight: 1.5,
+                  px: 1.2,
+                }}
+              />
+            </Tooltip>
           </Box>
           <Editor
             height="100%"

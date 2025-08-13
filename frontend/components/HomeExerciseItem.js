@@ -131,26 +131,12 @@ export default function HomeExerciseItem({ exercise }) {
           {exercise.title}
 
           <Tooltip
-            title={
-              exercise.verified
-                ? "Exercício verificado"
-                : "Exercício não verificado"
-            }
+            title={exercise.verified ? "Exercício verificado" : null}
             placement="right"
           >
             <Chip
               size="small"
-              icon={
-                exercise.verified ? (
-                  <VerifiedUserRounded />
-                ) : (
-                  <Box
-                    sx={{ fontSize: 28, display: "flex", alignItems: "center" }}
-                  >
-                    <GppBadRounded sx={{ fontSize: 21 }} />
-                  </Box>
-                )
-              }
+              icon={exercise.verified ? <VerifiedUserRounded /> : null}
               sx={{
                 backgroundColor: "transparent",
                 paddingLeft: 0,
