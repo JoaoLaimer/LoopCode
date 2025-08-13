@@ -346,6 +346,13 @@ public class ExerciseService {
         
         // TestCases will be deleted automatically due to CascadeType.ALL
         
+        // Delete all solved exercise records for this exercise
+        solvedExerciseRepository.deleteAll(
+            solvedExerciseRepository.findAll().stream()
+                .filter(se -> se.getExercise().equals(exercise))
+                .toList()
+        );
+        
         exerciseRepository.delete(exercise);
     }
 
