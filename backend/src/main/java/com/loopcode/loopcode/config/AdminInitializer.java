@@ -12,7 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Component
 public class AdminInitializer implements CommandLineRunner {
 
-    @Value("${ADMIN_PASSWORD}")
+    @Value("${ADMIN_PASSWORD:admin}")
     private String adminPassword;
 
     private final UserRepository userRepo;
